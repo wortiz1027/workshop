@@ -1,0 +1,40 @@
+services:
+  # ☕ Java Development Container
+  products:
+    image: mcr.microsoft.com/devcontainers/java:1-21-bullseye
+    volumes:
+      - ../..:/workspaces:cached
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: sleep infinity
+    network_mode: service:db
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # 🐬 MySQL Database
+  db:
+    image: mysql:9.0
+    container_name: mysql_server
+    hostname: storages
+    restart: always
+    #command: --lower_case_table_names=1
+    environment:
+      # Ofuscación mediante interpolación de variables con fallback seguro
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql-products-schema-v1.sql:/docker-entrypoint-initdb.d/mysql-products-schema-v1.sql
+    healthcheck:
+      # Corregido: Usamos las variables dinámicas también en la prueba de salud
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USER}", "-p${DB_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mysql_data:

@@ -1,0 +1,18 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: microservice
+  datasource:
+    url: jdbc:mysql://storages:3306/${DB_NAME:productsdb}?useSSL=false&serverTimezone=UTC
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        physical_naming_strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl

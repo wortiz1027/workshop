@@ -1,0 +1,114 @@
+# ⚙️ Resterm Workspace Configuration
+@baseUrl = http://localhost:8080/api/products
+
+###
+# @name ListAllProducts
+# 1. Obtener todos los productos y validar que la base de datos responda correctamente.
+GET {{baseUrl}}
+Accept: application/json
+
+# @script test
+> {%
+client.test("Status es 200 y array no vacio", function () {
+  tests.assert(response.statusCode === 200, "El codigo de respuesta debe ser 200");
+  
+  var products = JSON.parse(response.body);
+  
+  tests.assert(Array.isArray(products), "La respuesta debe ser un arreglo de productos");
+  tests.assert(products.length > 0, "El arreglo no debe estar vacio");
+  tests.assert(products[0].id !== null, "El primer producto debe tener un ID generado");
+});
+%}
+
+###
+# @name GetConcatenatedNames
+# 2. Ejecutar el Procedimiento Almacenado a través de la API y comprobar el separador.
+GET {{baseUrl}}/names-list
+
+# @script test
+> {%
+client.test("Procedimiento Almacenado Exitoso", function () {
+  tests.assert(response.statusCode === 200, "Estado exitoso");
+  tests.assert(response.body.includes("TV LG 56 Pulgadas"), "Debe contener el primer producto insertado");
+  tests.assert(response.body.includes("|"), "Debe incluir el caracter separador del cursor");
+});
+%}
+
+###
+# @name ApplyBulkDiscountSuccess
+# 3. Aplicar descuento masivo válido (Regla de negocio exitosa: 20% a controles)
+PUT {{baseUrl}}/bulk-discount?keyword=Control&percentage=20
+Accept: application/json
+
+# @script test
+> {%
+client.test("Descuento Aplicado Exitosamente", function () {
+  tests.assert(response.statusCode === 200, "Estado OK");
+  var products = JSON.parse(response.body);
+  tests.assert(Array.isArray(products), "Retorna lista de productos modificados");
+  tests.assert(products[0].price < 400000, "El precio final del control debe ser menor a 400,000");
+});
+%}
+
+###
+# @name ApplyBulkDiscountBusinessError
+# 4. Forzar la excepción personalizada (Descuento inválido del 99%)
+PUT {{baseUrl}}/bulk-discount?keyword=Xbox&percentage=99
+Accept: application/json
+
+# @script test
+> {%
+client.test("Captura de Excepcion Personalizada", function () {
+  tests.assert(response.statusCode === 422, "El negocio restringe con un estado 422");
+  
+  var errorObj = JSON.parse(response.body);
+  
+  tests.assert(errorObj.status === 422, "El JSON del Handler debe confirmar el codigo 422");
+  tests.assert(errorObj.error === "Unprocessable Entity", "Nombre estandar del error HTTP");
+  tests.assert(errorObj.message.includes("entre el 1% y el 50%"), "Mensaje exacto del ProductBusinessException");
+});
+%}
+
+###
+# @name SearchProductsNativePaged
+# 5. Consulta con SQL Nativo y Paginación de Spring Data
+GET {{baseUrl}}/search-native?minPrice=2000000&page=0&size=2
+Accept: application/json
+
+# @script test
+> {%
+client.test("Paginacion Nativa Correcta", function () {
+  tests.assert(response.statusCode === 200, "Respuesta OK");
+  
+  var pageObj = JSON.parse(response.body);
+  
+  tests.assert(Array.isArray(pageObj.content), "La propiedad content debe alojar las entidades");
+  tests.assert(pageObj.pageable.pageSize === 2, "El tamaño de pagina devuelto coincide con el solicitado");
+  tests.assert(pageObj.totalPages >= 1, "Debe calcular el total de paginas disponibles");
+});
+%}
+
+###
+# @name CreateProductNative
+# 6. Inserción Masiva utilizando SQL Nativo directo
+POST {{baseUrl}}/native
+Content-Type: application/json
+
+{
+  "code": "KEY-RGB-08",
+  "name": "Teclado Mecanico Custom",
+  "description": "Switches Cherry MX Red",
+  "price": 550000
+}
+
+# @script test
+> {%
+client.test("Insercion Nativa Correcta", function () {
+  tests.assert(response.statusCode === 201, "Estado 201 Created");
+  
+  var productObj = JSON.parse(response.body);
+  
+  tests.assert(productObj.id !== null, "El backend debe retornar el UUID generado");
+  tests.assert(productObj.code === "KEY-RGB-08", "El codigo coincide con el enviado");
+});
+%}
