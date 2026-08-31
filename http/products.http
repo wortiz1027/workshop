@@ -21,6 +21,25 @@ client.test("Status es 200 y array no vacio", function () {
 %}
 
 ###
+# @name GetSingleProductFromExternalCatalog
+# Pruebba directa para validar el nuevo endpoint de un solo ID antes de armar el reporte
+GET {{baseUrl}}/3d703247-54bc-47ef-a69d-7531a638022e
+Accept: application/json
+
+# @script test
+> {%
+client.test("Consulta Individual de Producto Exitosa", function () {
+  tests.assert(response.statusCode === 200, "Estado 200 OK");
+
+  var product = JSON.parse(response.body);
+
+  tests.assert(product.id === "3d703247-54bc-47ef-a69d-7531a638022e", "Mismo ID consultado");
+  tests.assert(product.name === "Laptop Samsung Pocket", "Mapeó el nombre correcto del catálogo");
+});
+%}
+
+
+###
 # @name GetConcatenatedNames
 # 2. Ejecutar el Procedimiento Almacenado a través de la API y comprobar el separador.
 GET {{baseUrl}}/names-list

@@ -4,7 +4,7 @@ spring:
   application:
     name: microservice
   datasource:
-    url: jdbc:mysql://storages:3306/${DB_NAME:productsdb}?useSSL=false&serverTimezone=UTC
+    url: jdbc:mysql://service_products:3306/${DB_NAME:productsdb}?useSSL=false&serverTimezone=UTC
     username: ${DB_USER}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver

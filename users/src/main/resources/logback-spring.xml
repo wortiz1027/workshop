@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- Variables personalizadas para rutas y formatos -->
+    <property name="LOGS_DIR" value="./logs" />
+    <property name="CONSOLE_LOG_PATTERN" 
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %magenta([%thread]) %highlight(%-5level) %logger{36} - %msg%n" />
+    <property name="FILE_LOG_PATTERN" 
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n" />
+
+    <!-- 1. APPENDER: Consola (Salida estándar con colores para desarrollo local) -->
+    <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- 2. APPENDER: Archivo Rotativo (Para auditoría y entornos de testing/producción) -->
+    <appender name="RollingFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/tmp/users-app.log</file>
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+        </encoder>
+        
+        <!-- Política de rotación: Crea un archivo nuevo por día o si supera los 10MB -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOGS_DIR}/archived/users-app-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>30</maxHistory> <!-- Retiene históricos por 30 días -->
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- 3. CONFIGURACIÓN DE NIVELES POR PAQUETE -->
+    
+    <!-- Logger de nuestra aplicación en modo DEBUG para el taller -->
+    <logger name="co.com.netec.microservice" level="DEBUG" additivity="false">
+        <appender-ref ref="Console" />
+        <appender-ref ref="RollingFile" />
+    </logger>
+
+    <!-- Loggers para rastrear SQL Nativo, parámetros y JPA/Hibernate -->
+    <!-- Muestra los SQLs formateados en la consola -->
+    <logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
+        <appender-ref ref="Console" />
+    </logger>
+    <!-- Muestra los valores reales que se inyectan en los parámetros (?, ?) -->
+    <logger name="org.hibernate.orm.jdbc.bind" level="TRACE" additivity="false">
+        <appender-ref ref="Console" />
+    </logger>
+
+    <!-- Raíz del sistema (Fallback para Spring Boot, Tomcat, etc.) en INFO -->
+    <root level="INFO">
+        <appender-ref ref="Console" />
+        <appender-ref ref="RollingFile" />
+    </root>
+
+</configuration>

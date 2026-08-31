@@ -1,0 +1,115 @@
+# ⚙️ Resterm Users Workspace Configuration
+@baseUrl = http://localhost:8081/api/users
+@catalogUrl = http://localhost:8080/api/products
+
+###
+# @name GetUserAggregateReportSuccess
+# 1. Obtener reporte distribuido unificado (Usuarios + Productos externos) de un usuario existente.
+GET {{baseUrl}}/usr-0001/report
+Accept: application/json
+
+# @script test
+> {%
+client.test("Reporte Distribuido Unificado Correcto", function () {
+  tests.assert(response.statusCode === 200, "La API respondio con estado exitoso 200");
+
+  var reportObj = JSON.parse(response.body);
+
+  tests.assert(reportObj.userId === "usr-0001", "El ID del reporte coincide con Carlos Mendoza");
+  tests.assert(reportObj.userRole === "CLIENT", "El rol mapeado del usuario es correcto");
+  tests.assert(reportObj.totalProductsCalculatedBySp === 2, "El Procedure de la DB local de usuarios conto 2 productos");
+  tests.assert(Array.isArray(reportObj.purchases), "La propiedad purchases es una lista estructurada");
+
+  if (reportObj.purchases.length > 0) {
+    tests.assert(reportObj.purchases[0].productMetadata !== null, "La metadata externa del producto fue adjuntada con exito");
+  }
+});
+%}
+
+###
+# @name GetUserReportNotFoundError
+# 2. Forzar error 422 al intentar generar reporte de un usuario que no existe en el sistema.
+GET {{baseUrl}}/usr-inexistente/report
+Accept: application/json
+
+# @script test
+> {%
+client.test("Captura de Error de Usuario Inexistente", function () {
+  tests.assert(response.statusCode === 422, "El negocio restringe el acceso con un estado 422");
+
+  var errorObj = JSON.parse(response.body);
+
+  tests.assert(errorObj.status === 422, "El JSON del Handler confirma el codigo de estado");
+  tests.assert(errorObj.error === "Unprocessable Content", "Nombre estandar del error HTTP esperado");
+  tests.assert(errorObj.message.includes("no existe en el sistema"), "Mensaje exacto de UserBusinessException");
+});
+%}
+
+###
+# @name RegisterPurchaseSuccess
+# 3. Comprar un producto valido (Xbox Serie X) para Carlos Mendoza.
+POST {{baseUrl}}/purchase
+Content-Type: application/json
+
+{
+  "userId": "usr-0001",
+  "productId": "6d7a2e5c-520b-4dd9-b6a4-9686d9dee990"
+}
+
+# @script test
+> {%
+client.test("Compra Registrada Exitosamente", function () {
+  tests.assert(response.statusCode === 201, "Estado 201 Created para la nueva relacion");
+
+  var purchaseObj = JSON.parse(response.body);
+
+  tests.assert(purchaseObj.relationId !== null, "Se genero un ID de relacion unico local");
+  tests.assert(purchaseObj.productId === "6d7a2e5c-520b-4dd9-b6a4-9686d9dee990", "El ID del producto comprado coincide");
+  tests.assert(purchaseObj.productMetadata.name === "Xbox Serie X", "Se valido y cargo la metadata real del catalogo externo");
+});
+%}
+
+###
+# @name RegisterPurchaseProductNotFoundError
+# 4. Intentar comprar un producto inexistente para forzar la validacion de catalogo externa.
+POST {{baseUrl}}/purchase
+Content-Type: application/json
+
+{
+  "userId": "usr-0001",
+  "productId": "id-producto-falso-que-no-existe"
+}
+
+# @script test
+> {%
+client.test("Bloqueo de Compra por Producto Inexistente", function () {
+  tests.assert(response.statusCode === 422, "Respuesta 422 de denegacion por regla de negocio");
+
+  var errorObj = JSON.parse(response.body);
+
+  tests.assert(errorObj.status === 422, "Estado de error homologado");
+  tests.assert(errorObj.message.includes("no existe en el catálogo de inventario"), "Validacion de negocio activa ejecutada");
+});
+%}
+
+###
+# @name RegisterPurchaseUserNotFoundError
+# 5. Intentar comprar un producto valido pero con un usuario que no existe en el sistema.
+POST {{baseUrl}}/purchase
+Content-Type: application/json
+
+{
+  "userId": "usr-falso-99",
+  "productId": "6d7a2e5c-520b-4dd9-b6a4-9686d9dee990"
+}
+
+# @script test
+> {%
+client.test("Bloqueo de Compra por Usuario Inexistente", function () {
+  tests.assert(response.statusCode === 422, "Respuesta 422 de denegacion");
+
+  var errorObj = JSON.parse(response.body);
+
+  tests.assert(errorObj.message.includes("El usuario con ID 'usr-falso-99' no existe"), "Validacion de existencia local ejecutada");
+});
+%}

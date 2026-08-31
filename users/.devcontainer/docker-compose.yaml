@@ -1,20 +1,21 @@
 services:
   # ☕ Java Development Container
-  products:
+  users:
     image: mcr.microsoft.com/devcontainers/java:1-21-bullseye
     volumes:
       - ../..:/workspaces:cached
+      - /var/run/docker.sock:/var/run/docker.sock
     command: sleep infinity
-    network_mode: service:db
+    network_mode: service:db_users
     depends_on:
-      db:
+      db_users:
         condition: service_healthy
 
   # 🐬 MySQL Database
-  db:
+  db_users:
     image: mysql:9.0
-    container_name: mysql_server_products
-    hostname: service_products
+    container_name: mysql_server_users
+    hostname: service_users
     restart: always
     #command: --lower_case_table_names=1
     environment:
@@ -24,12 +25,12 @@ services:
       MYSQL_USER: ${DB_USER}
       MYSQL_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "3306:3306"
+      - "3308:3306"
     networks:
-      - ntw_development      
+      - ntw_development
     volumes:
-      - mysql_data_products:/var/lib/mysql
-      - ./mysql-products-schema-v1.sql:/docker-entrypoint-initdb.d/mysql-products-schema-v1.sql
+      - mysql_data_users:/var/lib/mysql
+      - ./mysql-users-schema-v1.sql:/docker-entrypoint-initdb.d/mysql-users-schema-v1.sql
     healthcheck:
       # Corregido: Usamos las variables dinámicas también en la prueba de salud
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USER}", "-p${DB_PASSWORD}"]
@@ -38,7 +39,7 @@ services:
       retries: 5
 
 volumes:
-  mysql_data_products:
+  mysql_data_users:
 
 networks:
   ntw_development:

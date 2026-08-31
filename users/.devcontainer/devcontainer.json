@@ -1,6 +1,6 @@
 {
-	"name": "🍃 Products :: Boot Dev environment🍃",
-	"service": "products",
+	"name": "🍃 Users :: Boot Dev environment🍃",
+	"service": "users",
 	"dockerComposeFile": "docker-compose.yaml",
 	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
 	"features": {
@@ -12,19 +12,19 @@
 	},
 	// 🐘 MySQL is available at db:3306
 	"forwardPorts": [
-		8080,
-		3306
+		8081,
+		3307
 	],
 	"portsAttributes": {
-		"8080": {
+		"8081": {
 			"label": "🚀 Spring Boot App"
 		},
-		"3306": {
+		"3307": {
 			"label": "🐘 MySQL"
 		}
 	},
 	// ✅ Wait for DB to be ready before running commands
-	"postCreateCommand": "echo '🐘 MySQL ready at db:3306 | 🗄️ DB: products_db | 👤 User: workshop'",
+	"postCreateCommand": "echo '🐘 MySQL ready at db:3307 | 🗄️ DB: users_db | 👤 User: products'",
 	"postStartCommand": "chmod +x .devcontainer/set-envs.sh && (grep -qF 'set-envs.sh' ~/.bashrc || echo 'source /workspaces/${localWorkspaceFolderBasename}/.devcontainer/set-envs.sh' >> ~/.bashrc) && (grep -qF 'set-envs.sh' ~/.zshrc || echo 'source /workspaces/${localWorkspaceFolderBasename}/.devcontainer/set-envs.sh' >> ~/.zshrc)",
 	"customizations": {
 		"vscode": {
@@ -40,7 +40,7 @@
 			],
 			"settings": {
 				"workbench.iconTheme": "symbols",
-				"workbench.colorTheme": "Light+",
+				"workbench.colorTheme": "Tomorrow Night Blue",
 				"java.compile.nullAnalysis.mode": "automatic",
 				"java.jdt.ls.java.home": "/usr/lib/jvm/msopenjdk-current",
 				"java.configuration.runtimes": [
