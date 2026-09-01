@@ -1,5 +1,5 @@
 # ⚙️ Resterm Workspace Configuration
-@baseUrl = http://localhost:8080/api/products
+@baseUrl = http://{{products.host}}:{{products.port}}/api/products
 
 ###
 # @name ListAllProducts
