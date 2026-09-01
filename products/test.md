@@ -176,12 +176,10 @@ Para empaquetar de forma segura y eficiente los microservicios utilizando los Do
 # 1. Compilar la imagen del Microservicio de Productos
 cd ./products
 docker build \
-  --no-cache \
-  --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+  --build-arg BUILD_DATE=\$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
   --build-arg BUILD_VERSION="1.0.0" \
-  --build-arg BUILD_REVISION=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown") \
-  -t workshop/products-service:latest .
-
+  --build-arg BUILD_REVISION=\$(git rev-parse --short HEAD 2>/dev/null || echo "unknown") \
+  -t products-service:latest .
 
 # 2. Compilar la imagen del Microservicio de Usuarios
 cd ../users
