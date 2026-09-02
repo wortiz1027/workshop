@@ -14,7 +14,7 @@ services:
   # 🐬 Servidor MySQL dedicado a Productos
   db_products:
     image: mysql:9.0
-    container_name: production_mysql_server_products
+    container_name: prod_db_srv_products
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD_PRODUCTS}
@@ -22,11 +22,10 @@ services:
       MYSQL_USER: ${DB_USER_PRODUCTS}
       MYSQL_PASSWORD: ${DB_PASSWORD_PRODUCTS}
     ports:
-      - "3310:3306" # Expuesto para inspección desde el host físico
+      - "3310:3306"
     command: --lower_case_table_names=1
     volumes:
       - production_mysql_data_products:/var/lib/mysql
-      # Script de inicialización de productos
       - ./products/.devcontainer/mysql-products-schema-v1.sql:/docker-entrypoint-initdb.d/schema.sql
     networks:
       - ntw_production
@@ -39,10 +38,10 @@ services:
   # 🚀 Aplicación Java de Productos (Imagen compila con su Dockerfile)
   products-app:
     image: workshop/products-service:latest
-    container_name: microservice_products_app
+    container_name: prod-app-products
     restart: always
     environment:
-      SPRING_PROFILES_ACTIVE: prod # 🚀 ACTIVA EL PERFIL DE PRODUCCIÓN
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE_ENV}
       DB_HOSTNAME: ${DB_PRODUCTS_HOSTNAME}
       DB_PORT: ${DB_PRODUCTS_PORT}
       DB_NAME: ${DB_NAME_PRODUCTS}
@@ -50,13 +49,68 @@ services:
       DB_PASSWORD: ${DB_PASSWORD_PRODUCTS}
     ports:
       - "8088:8080"
-    # Hereda la red de db_products para mantener el network_mode del taller si se requiere,
-    # o se conecta de forma directa a la red compartida bridge:
     networks:
       - ntw_production
     depends_on:
       db_products:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'      # Capamos al 50% de un núcleo
+          memory: 256M      # Restringimos a 256MB de RAM
+        reservations:
+          memory: 128M
+  # =======================================================================
+  # 👥 COMPONENTE 2: DOMINIO DE USUARIOS (API + BASE DE DATOS)
+  # =======================================================================
+
+  # 🐬 Servidor MySQL dedicado a Usuarios
+  db_users:
+    image: mysql:9.0
+    container_name: prod_db_srv_users
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD_USERS}
+      MYSQL_DATABASE: ${DB_NAME_USERS}
+      MYSQL_USER: ${DB_USER_USERS}
+      MYSQL_PASSWORD: ${DB_PASSWORD_USERS}
+    ports:
+      - "3311:3306"
+    volumes:
+      - production_mysql_data_users:/var/lib/mysql
+      - ./users/.devcontainer/mysql-users-schema-v1.sql:/docker-entrypoint-initdb.d/schema.sql
+    command: --lower_case_table_names=1
+    networks:
+      - ntw_production
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USER_USERS}", "-p${DB_PASSWORD_USERS}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 🚀 Aplicación Java de Usuarios (Imagen compila con su Dockerfile)
+  users-app:
+    image: workshop/users-service:latest
+    container_name: prod-app-users
+    restart: always
+    ports:
+      - "8089:8081"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE_ENV} # 🚀 ACTIVA EL PERFIL DE PRODUCCIÓN
+      PRODUCTS_API_URL: ${PRODUCTS_BASE_URL}
+      DB_HOSTNAME: ${DB_USERS_HOSTNAME}
+      DB_PORT: ${DB_USERS_PORT}
+      DB_NAME: ${DB_NAME_USERS}
+      DB_USER: ${DB_USER_USERS}
+      DB_PASSWORD: ${DB_PASSWORD_USERS}
+    networks:
+      - ntw_production
+    depends_on:
+      db_users:
+        condition: service_healthy
+      products-app:
+        condition: service_started
     deploy:
       resources:
         limits:
@@ -71,7 +125,7 @@ services:
 networks:
   ntw_production:
     name: ntw_production
-    external: true # Se acopla a la red común puente pre-creada en la terminal
+    external: true
 
 volumes:
   production_mysql_data_products:
