@@ -141,6 +141,7 @@ public class UserService {
      */
     private ProductDTO fetchProductDetailsDefensive(String productId) {
         try {
+            log.info("[product_id:{}] - [message: consultando la api de productos por id: {}]", productId, productId);
             return productRestClient.get()
                     // Inyecta dinámicamente el ID en la URL remota: /api/products/{id}
                     .uri("/{id}", productId)

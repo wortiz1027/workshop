@@ -7,7 +7,9 @@
               value="%d{yyyy-MM-dd HH:mm:ss.SSS} %magenta([%thread]) %highlight(%-5level) %logger{36} - %msg%n" />
     <property name="FILE_LOG_PATTERN" 
               value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n" />
-
+    <property name="LOKI_LOG_PATTERN" 
+              value="%d{yyyy-MM-dd HH:mm:ss} [%thread] %magenta(%-5level) %green([%-50.50class]) >>> %cyan(%msg) %n" />
+              
     <!-- 1. APPENDER: Consola (Salida estándar con colores para desarrollo local) -->
     <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
@@ -30,29 +32,50 @@
             <totalSizeCap>1GB</totalSizeCap>
         </rollingPolicy>
     </appender>
-
+    
+        <!-- Loki Logging -->
+    <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+        <http>
+            <url>http://loki:3100/loki/api/v1/push</url>
+        </http>
+        <format>
+            <label>
+                <pattern>app=users, environment=production, region=docker, level=%level</pattern>
+                <readMarkers>true</readMarkers>
+            </label>
+            <message>
+                <pattern>
+                    ${LOKI_LOG_PATTERN}
+                </pattern>
+            </message>
+        </format>
+    </appender>
     <!-- 3. CONFIGURACIÓN DE NIVELES POR PAQUETE -->
     
     <!-- Logger de nuestra aplicación en modo DEBUG para el taller -->
-    <logger name="co.com.netec.microservice" level="DEBUG" additivity="false">
+    <logger name="co.com.netec.users" level="DEBUG" additivity="false">
         <appender-ref ref="Console" />
         <appender-ref ref="RollingFile" />
+        <appender-ref ref="LOKI" />        
     </logger>
 
     <!-- Loggers para rastrear SQL Nativo, parámetros y JPA/Hibernate -->
     <!-- Muestra los SQLs formateados en la consola -->
     <logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
         <appender-ref ref="Console" />
+        <appender-ref ref="LOKI" />
     </logger>
     <!-- Muestra los valores reales que se inyectan en los parámetros (?, ?) -->
     <logger name="org.hibernate.orm.jdbc.bind" level="TRACE" additivity="false">
         <appender-ref ref="Console" />
+        <appender-ref ref="LOKI" />
     </logger>
 
     <!-- Raíz del sistema (Fallback para Spring Boot, Tomcat, etc.) en INFO -->
     <root level="INFO">
         <appender-ref ref="Console" />
         <appender-ref ref="RollingFile" />
+        <appender-ref ref="LOKI" />
     </root>
 
 </configuration>

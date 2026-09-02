@@ -2,7 +2,7 @@ server:
   port: 8080
 spring:
   application:
-    name: microservice
+    name: products
   profiles:
     # 🚀 Maven inyectará aquí el valor del perfil seleccionado durante el 'package'
     active: ${SPRING_PROFILES_ACTIVE:dev}
@@ -14,3 +14,19 @@ spring:
       hibernate:
         format_sql: true
         physical_naming_strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: prometheus,health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+    tags:
+      application: ${spring.application.name}     

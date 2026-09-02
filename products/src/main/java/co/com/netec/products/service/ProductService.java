@@ -30,6 +30,7 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public List<ProductDTO> findAll() {
+        log.debug("[messages: Consultando listado de productos]");
         return productRepository.findAll().stream()
                 .map(p -> new ProductDTO(p.getId(), p.getCode(), p.getName(), p.getDescription(), p.getPrice()))
                 .collect(Collectors.toList());
@@ -42,7 +43,7 @@ public class ProductService {
                 .orElseThrow(() -> new ProductBusinessException(
                         "El producto con ID '" + id + "' no existe en el inventario activo."));
     }
-    
+
     @Transactional
     public String getConcatenatedProductNames() {
         return productRepository.llamarSpListarNombres();
