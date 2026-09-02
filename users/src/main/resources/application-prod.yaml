@@ -1,0 +1,17 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    # Dentro de la red de producción, se conecta usando las variables inyectadas por el Compose [1]
+    url: jdbc:mysql://${DB_HOSTNAME}:${DB_PORT}/${DB_NAME}?useSSL=false&serverTimezone=UTC
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+api:
+  products:
+    # En producción dentro de Docker, apunta directo al nombre del contenedor del otro microservicio [1]
+    url: ${PRODUCTS_API_URL:http://microservice_products_app:8080}/api/products

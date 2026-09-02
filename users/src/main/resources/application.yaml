@@ -1,24 +1,15 @@
 server:
   port: 8081
+
 spring:
   application:
     name: users
-  datasource:
-    url: jdbc:mysql://service_users:3306/${DB_NAME:usersdb}?useSSL=false&serverTimezone=UTC
-    username: ${DB_USER}
-    password: ${DB_PASSWORD}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+  profiles:
+    # 🚀 Si no se inyecta ninguna variable externa del sistema, activa el perfil 'dev' por defecto [1]
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   jpa:
-    hibernate:
-      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
         format_sql: true
         physical_naming_strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
-
-api:
-  products:
-    # 🐳 'host.docker.internal' es una palabra clave mágica de Docker que le permite
-    # a un contenedor salir de su propia red y hablar con los puertos de la máquina real (Host)
-    url: ${PRODUCTS_API_URL}/api/products

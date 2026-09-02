@@ -6,6 +6,10 @@ import java.util.List;
 
 @Entity
 @Table(name = "USERS")
+@NamedStoredProcedureQuery(name = "User.sp_obtener_metricas", procedureName = "sp_obtener_metricas_usuario", parameters = {
+        @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_user_id", type = String.class),
+        @StoredProcedureParameter(mode = ParameterMode.OUT, name = "p_total_productos", type = Integer.class)
+})
 public class User {
 
     @Id

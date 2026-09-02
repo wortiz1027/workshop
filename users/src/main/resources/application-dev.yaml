@@ -1,0 +1,17 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    # Para el DevContainer local, apunta al host que comparte red con su MySQL de desarrollo [1]
+    url: jdbc:mysql://${DB_HOSTNAME}:${DB_PORT}/${DB_NAME}?useSSL=false&serverTimezone=UTC
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+api:
+  products:
+    # En desarrollo local de tu IDE, busca la API de productos en tu localhost de la máquina física [1]
+    url: ${PRODUCTS_API_URL}/api/products

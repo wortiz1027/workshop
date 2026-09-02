@@ -37,9 +37,10 @@ graph TD
     style SubProducts fill:#bbf,stroke:#333,stroke-width:2px
 ```
 
-
 ### 📡 Lección Clave de Infraestructura: Redes en DevContainers
+
 Durante el taller descubrimos que el uso de `network_mode: service:[db]` en los entornos de desarrollo DevContainer acopla las pilas de red del contenedor de Java y su base de datos local de la siguiente forma:
+
 1. **Host `localhost` interno**: El microservicio y su MySQL local comparten la misma interfaz. Spring Boot se conecta de forma nativa a `localhost:3306`. Los puertos mapeados externos (como el `3308`) son **exclusivos para herramientas externas de la máquina física** y fallan si se intentan usar de forma interna.
 2. **Descubrimiento de Servicios Externos**: Para romper el aislamiento de los proyectos, se utiliza la red común de Docker `workshop_shared_network`. La aplicación de usuarios localiza a la API de productos apuntando al nombre del contenedor que aloja su red compartida (`http://mysql_server_products:8080`).
 
@@ -48,7 +49,9 @@ Durante el taller descubrimos que el uso de `network_mode: service:[db]` en los 
 ## 🗄️ 2. Diseño y Modelo de Datos Decentralizado
 
 ### Servidor de Productos (`productsdb`)
+
 Contiene el catálogo e inventario general de objetos.
+
 ```mermaid
 erDiagram
     PRODUCTS {
@@ -61,7 +64,9 @@ erDiagram
 ```
 
 ### Servidor de Usuarios (`usersdb`)
+
 Gestiona clientes y sus transacciones locales de compra de forma aislada.
+
 ```mermaid
 erDiagram
     USERS {
@@ -115,12 +120,15 @@ sequenceDiagram
 ## ⚙️ 4. Guía de Configuración Global del Entorno
 
 ### Prerrequisito: Crear la Red Compartida en tu Computadora Real
+
 Antes de inicializar los DevContainers en VS Code, debes crear de forma manual la red virtual en la terminal de tu sistema operativo principal para permitir la comunicación inter-servicio:
+
 ```bash
 docker network create workshop_shared_network
 ```
 
 ### Configuración del Entorno de Usuarios (`users/src/main/resources/application.yaml`)
+
 ```yaml
 server:
   port: 8081
@@ -151,17 +159,21 @@ api:
 Hemos separado los archivos de pruebas funcionales interactivas para simular un ambiente de entrega continua real. Puedes ejecutarlos desde la consola integrada utilizando **Resterm**:
 
 ### Módulo de Productos (`products.http`)
-* Validaciones básicas de endpoints REST de catálogos.
-* Pruebas del cursor del Procedimiento Almacenado de nombres concatenados (`sp_listar_nombres_productos`).
-* Inserciones masivas nativas eludiendo la caché de Hibernate.
+
+- Validaciones básicas de endpoints REST de catálogos.
+- Pruebas del cursor del Procedimiento Almacenado de nombres concatenados (`sp_listar_nombres_productos`).
+- Inserciones masivas nativas eludiendo la caché de Hibernate.
 
 ### Módulo de Usuarios (`users.http`)
-* Verificación del comportamiento del Procedimiento Almacenado local (`sp_obtener_metricas_usuario`).
-* Pruebas de orquestación síncrona por ID con transformación dinámica de strings a JSON nativo (`JSON.parse(response.body)`).
-* Simulación de fallos controlados por excepciones personalizadas de negocio (`UserBusinessException`) retornando códigos de error unificados **`HTTP 422 Unprocessable Content`**.
+
+- Verificación del comportamiento del Procedimiento Almacenado local (`sp_obtener_metricas_usuario`).
+- Pruebas de orquestación síncrona por ID con transformación dinámica de strings a JSON nativo (`JSON.parse(response.body)`).
+- Simulación de fallos controlados por excepciones personalizadas de negocio (`UserBusinessException`) retornando códigos de error unificados **`HTTP 422 Unprocessable Content`**.
 
 ### Ejecución de Ciclo Completo en Java (JaCoCo Metrics)
+
 Ambos microservicios cuentan con el plugin de JaCoCo configurado para romper la compilación si no se cumplen las políticas de pruebas automáticas (80% líneas / 70% ramas). Para correr los tests unitarios, integrales con Testcontainers y reportes en frío:
+
 ```bash
 mvn clean verify
 ```
@@ -182,14 +194,14 @@ docker build \
   --build-arg BUILD_REVISION=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown") \
   -t workshop/products-service:latest .
 
-
 # 2. Compilar la imagen del Microservicio de Usuarios
 cd ../users
 docker build \
-  --build-arg BUILD_DATE=\$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+  --no-cache \
+  --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
   --build-arg BUILD_VERSION="1.0.0" \
-  --build-arg BUILD_REVISION=\$(git rev-parse --short HEAD 2>/dev/null || echo "unknown") \
-  -t users-service:latest .
+  --build-arg BUILD_REVISION=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown") \
+  -t workshop/users-service:latest .
 ```
 
 ---
@@ -200,26 +212,29 @@ Una vez compiladas las imágenes locales, regresa a la raíz de tu espacio de tr
 
 ### Comandos de Operación:
 
-* **Levantar todos los servicios en segundo plano (Detached Mode):**
+- **Levantar todos los servicios en segundo plano (Detached Mode):**
+
   ```bash
   docker compose -f docker-compose.production.yaml up -d
   ```
 
-* **Verificar el estado de salud y mapeo de puertos de los contenedores:**
+- **Verificar el estado de salud y mapeo de puertos de los contenedores:**
+
   ```bash
   docker compose -f docker-compose.production.yaml ps
   ```
 
-* **Inspeccionar los logs en tiempo real (Útil para auditar la inyección de la variable PRODUCTS_API_URL):**
+- **Inspeccionar los logs en tiempo real (Útil para auditar la inyección de la variable PRODUCTS_API_URL):**
+
   ```bash
   # Ver actividad general
   docker compose -f docker-compose.production.yaml logs -f
-  
+
   # Ver actividad exclusiva del microservicio de usuarios
   docker logs -f microservice_users_app
   ```
 
-* **Apagar la arquitectura completa y eliminar los volúmenes persistentes de datos:**
+- **Apagar la arquitectura completa y eliminar los volúmenes persistentes de datos:**
   ```bash
   docker compose -f docker-compose.production.yaml down -v
   ```

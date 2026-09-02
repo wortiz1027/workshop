@@ -75,7 +75,7 @@ INSERT INTO PRODUCTS VALUES ('5f6de4a0-4f11-4fd6-b5a8-12634283cbe9','K18VOAG0B7'
 INSERT INTO PRODUCTS VALUES ('34d109ca-2c0d-481f-8c96-6d1c959711ca','UY3X5R0J3U','TV Nintendo Pocket','Experimenta una inmersión total con este dispositivo',6972000.00);
 
 ALTER USER 'root'@'%' IDENTIFIED BY 'products2026++';
-ALTER USER 'workshop'@'%' IDENTIFIED BY 'products2026';
+ALTER USER 'products'@'%' IDENTIFIED BY 'products2026';
 GRANT ALL PRIVILEGES ON productsdb.* TO 'root'@'%';
 GRANT ALL PRIVILEGES ON productsdb.* TO 'products'@'%';
 FLUSH PRIVILEGES;

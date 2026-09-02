@@ -1,6 +1,6 @@
 # ⚙️ Resterm Users Workspace Configuration
-@baseUrl = http://localhost:8081/api/users
-@catalogUrl = http://localhost:8080/api/products
+@baseUrl = http://{{users.host}}:{{users.port}}/api/users
+@catalogUrl = http://{{products.host}}:{{products.port}}/api/products
 
 ###
 # @name GetUserAggregateReportSuccess

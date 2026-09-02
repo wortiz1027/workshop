@@ -1,16 +1,16 @@
 # -------------------------------------------------------------
 # - DOCKERFILE
 # - AUTOR: @DevSoft Team
-# - FECHA: 31-agosto-2026
+# - FECHA: 01-septiembre-2026
 # - DESCRIPCION: Dockerfile multi-etapa optimizado para el
-# -              servicio independiente de productos (products)
+# -              servicio independiente de usuarios (users)
 # -------------------------------------------------------------
 # -------------------------------------------------------------
 # docker build \
 #  --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
 #  --build-arg BUILD_VERSION="1.0.0" \
 #  --build-arg BUILD_REVISION=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown") \
-#  -t products-service:latest .
+#  -t users-service:latest .
 # -------------------------------------------------------------
 # escape=\ (backslash)
 
@@ -27,13 +27,13 @@ COPY mvnw pom.xml ./
 # Descargar dependencias en caché para acelerar construcciones futuras
 RUN ./mvnw dependency:go-offline -B || true
 
-# Copiar el código fuente y empaquetar el .jar omitiendo los tests
+# Copiar el código fuente y empaquetar aplicando el perfil 'prod' de Maven
 COPY src/ src/
-RUN ./mvnw clean package -DskipTests -B
+RUN ./mvnw clean package -DskipTests -B -Pprod
 
-# 🚀 CORRECCIÓN CRÍTICA: Extracción moderna de capas Spring Boot usando jarmode=tools
+# 🚀 ESTRATEGIA DE EXTRACCIÓN INFALIBLE: Descomprimir el JAR nativamente para crear las capas
 WORKDIR /build/extracted
-RUN java -Djarmode=tools -jar /build/target/*.jar extract --destination .
+RUN jar -xf /build/target/*.jar
 
 # ==========================================
 # FASE 2: Entorno de Ejecución (Runtime Stage)
@@ -60,18 +60,19 @@ LABEL org.opencontainers.image.created=$BUILD_DATE \
 	  org.opencontainers.image.revision=$BUILD_REVISION \
 	  org.opencontainers.image.vendor="Develment Software Team | https://www.devsoft.com.co/" \
 	  org.opencontainers.image.licenses="" \
-	  org.opencontainers.image.title="Backend para la gestion de catalogo de productos" \
-	  org.opencontainers.image.description="Componente encargado de gestionar la informacion de inventarios"
+	  org.opencontainers.image.title="Backend para la gestion de catalogo de usuarios" \
+	  org.opencontainers.image.description="Componente encargado de gestionar la informacion de usuarios y sus productos"
 
-# Copiar las capas de la aplicación desde la fase de extracción de herramientas
-COPY --from=builder /build/extracted/dependencies/ ./
-COPY --from=builder /build/extracted/spring-boot-loader/ ./
-COPY --from=builder /build/extracted/snapshot-dependencies/ ./
-COPY --from=builder /build/extracted/application/ ./
+# Copia eficiente de las dependencias y clases descomprimidas
+COPY --from=builder /build/extracted/BOOT-INF/lib /app/lib
+COPY --from=builder /build/extracted/META-INF /app/META-INF
+COPY --from=builder /build/extracted/BOOT-INF/classes /app
 
 # Parámetros optimizados para ejecución en nube y Garbage Collector ZGC de Ultra Baja Latencia
 ENV JAVA_OPTS="-XX:+UseZGC -XX:+ZGenerational -XX:+UnlockDiagnosticVMOptions -Dfile.encoding=UTF-8 -XX:+AlwaysPreTouch -Xss256k"
 
-EXPOSE 8080
+EXPOSE 8081
 
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS org.springframework.boot.loader.launch.JarLauncher"]
+# 🚀 ENTRYPOINT ORIENTADO A USUARIOS: Apunta de forma exacta a la clase principal de este microservicio
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -cp .:./lib/* co.com.netec.users.Application"]
+	

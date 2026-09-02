@@ -13,12 +13,11 @@ services:
   # 🐬 MySQL Database
   db:
     image: mysql:9.0
-    container_name: mysql_server_products
-    hostname: service_products
+    container_name: dev_srv_products
+    hostname: service-products
     restart: always
     #command: --lower_case_table_names=1
     environment:
-      # Ofuscación mediante interpolación de variables con fallback seguro
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}
       MYSQL_USER: ${DB_USER}
@@ -31,7 +30,6 @@ services:
       - mysql_data_products:/var/lib/mysql
       - ./mysql-products-schema-v1.sql:/docker-entrypoint-initdb.d/mysql-products-schema-v1.sql
     healthcheck:
-      # Corregido: Usamos las variables dinámicas también en la prueba de salud
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USER}", "-p${DB_PASSWORD}"]
       interval: 5s
       timeout: 5s

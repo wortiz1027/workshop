@@ -15,6 +15,6 @@ public interface UserRepository extends JpaRepository<User, String> {
     Optional<User> findByIdWithProducts(@Param("userId") String userId);
 
     // Ejecuta el procedimiento almacenado nativo de este servidor de usuarios
-    @Procedure(procedureName = "sp_obtener_metricas_usuario")
+    @Procedure(name = "User.sp_obtener_metricas")
     Integer obtenerMetricasUsuario(@Param("p_user_id") String userId);
 }
