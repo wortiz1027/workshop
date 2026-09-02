@@ -6,7 +6,7 @@ Este directorio contiene la suite centralizada de pruebas de rendimiento, carga 
 
 ## 🏗️ 1. Topología del Entorno de Pruebas
 
-El siguiente diagrama detalla cómo la herramienta k6 actúa como un inyector de tráfico externo y cómo se altera la resolución de red según el perfil seleccionado:
+El siguiente diagrama detalla cómo la herramienta k6 actúa como un inyector de tráfico externo y cómo se altera la resolución de red según el perfil seleccionado, interactuando con ambos microservicios en simultáneo:
 
 ```mermaid
 graph TD
@@ -15,6 +15,12 @@ graph TD
     end
 
     subgraph DockerBridge ["🌐 Red Docker: workshop_shared_network"]
+        subgraph SubUsers ["👥 Microservicio Usuarios (Puerto 8081)"]
+            AppUsers[Spring Boot: users]
+            DBUsers[(🐬 MySQL: usersdb)]
+            AppUsers -->|localhost:3306| DBUsers
+        end
+
         subgraph SubProducts ["📦 Microservicio Productos (Puerto 8080)"]
             AppProducts[Spring Boot: products]
             DBProducts[(🐬 MySQL: productsdb)]
@@ -22,10 +28,14 @@ graph TD
         end
     end
 
-    %% Flujos de Red Dinámicos según el Entorno
+    %% Flujos de Red Dinámicos según el Entornos de k6
+    K6 -->|"Perfil 'dev': http://localhost:8081"| AppUsers
     K6 -->|"Perfil 'dev': http://localhost:8080"| AppProducts
-    K6 -->|"Perfil 'prod': http://microservice_products_app:8080"| AppProducts
 
+    K6 -->|"Perfil 'prod': http://microservice_users_app:8081"| AppUsers
+    AppUsers -->|"Orquestacion HTTP: http://microservice_products_app:8080"| AppProducts
+
+    style SubUsers fill:#f9f,stroke:#333,stroke-width:2px
     style SubProducts fill:#bbf,stroke:#333,stroke-width:2px
 ```
 
@@ -41,15 +51,19 @@ performance/
 │   └── environments.js           # Mapeo dinámico de perfiles de red (dev / prod)
 ├── data/                         # Repositorio para archivos CSV / JSON de datos masivos
 ├── reports/                      # Almacenamiento automatizado de Reportes HTML interactivos
-├── run-tests.sh                  # Script de automatización global de la suite
+├── run-tests.sh                  # Script de automatización global compatible con Bash y Zsh
 ├── src/
 │   └── rest/
 │       ├── products/             # Contexto Delimitado: Catálogo de Productos
-│       │   ├── products.client.js # Cliente HTTP síncrono y reutilizable
-│       │   └── scenarios/        # Curvas de carga y estrés destructivo
+│       │   ├── products.client.js # Cliente HTTP de productos (GET, POST, DELETE)
+│       │   └── scenarios/        # Escenarios lógicos de inyección de carga
 │       │       ├── products-load.test.js
 │       │       └── products-stress.test.js
-│       └── users/                # Contexto Delimitado: Gestión de Usuarios (Pendiente)
+│       └── users/                # Contexto Delimitado: Gestión de Usuarios y Compras
+│           ├── users.client.js   # Cliente HTTP de usuarios (GET Reporte por ID)
+│           └── scenarios/        # Escenarios de orquestación distribuida
+│               ├── users-load.test.js
+│               └── users-stress.test.js
 └── utils/                        # Funciones utilitarias y manejadores globales
 ```
 
@@ -59,22 +73,22 @@ performance/
 
 k6 lee dinámicamente la variable de entorno del sistema operativo `TEST_ENV` a través de su constante interna global `__ENV`. Contamos con dos entornos simétricos alineados a la infraestructura del taller:
 
-- **`dev` (Desarrollo Local / DevContainer):** Direcciona el tráfico directamente hacia el `localhost` y puertos expuestos de la máquina del programador (`localhost:8080`). Activado por defecto.
-- **`prod` (Producción / Docker Compose):** Direcciona el tráfico hacia el nombre de dominio interno del contenedor en la red virtual de Docker (`microservice_products_app:8080`), ideal para pruebas con contención física de hardware.
+- **`dev` (Desarrollo Local / DevContainer):** Direcciona el tráfico directamente hacia el `localhost` y puertos expuestos de la máquina del programador (`localhost:8080` / `localhost:8081`). Activado por defecto.
+- **`prod` (Producción / Docker Compose):** Direcciona el tráfico hacia los nombres de dominio internos de los contenedores en la red virtual compartida de Docker (`microservice_products_app` / `microservice_users_app`), ideal para pruebas con contención física de hardware.
 
 ---
 
 ## 📦 4. Módulo 1: Catálogo de Productos (`products`)
 
-Este módulo valida el comportamiento del microservicio encargado de los inventarios. El cliente REST (`products.client.js`) gestiona de forma síncrona las cabeceras corporativas y descompone las operaciones del ciclo de vida del catálogo.
+Este módulo valida el comportamiento del microservicio encargado de los inventarios. El cliente REST (`products.client.js`) gestiona las cabeceras e inyecta UUIDs aleatorios dinámicos en las operaciones de escritura para eludir las restricciones de clave duplicada en MySQL.
 
 ### A. Escenario 1: Carga Progresiva Moderada (`products-load.test.js`)
 
-Evalúa el comportamiento de la API frente a curvas de tráfico tradicionales con rampas escalonadas de hasta **30 usuarios virtuales (VUs)** simultáneos, simulando el "tiempo de pensamiento" (_think time_) de un cliente real mediante una pausa de 1 segundo (`sleep(1)`).
+Evalúa el rendimiento frente a curvas de tráfico tradicionales con rampas escalonadas de hasta **30 usuarios virtuales (VUs)** simultáneos, simulando el "tiempo de pensamiento" mediante una pausa de 1 segundo (`sleep(1)`).
 
 ```mermaid
 timeline
-    title Curva de Carga Progresiva (Sustentacion de la API)
+    title Curva de Carga Progresiva - Productos
     Etapa 1 (20s) : 10 VUs : Rampa de Subida Inicial
     Etapa 2 (40s) : 10 VUs : Meseta de Estabilidad Baja
     Etapa 3 (20s) : 30 VUs : Segunda Rampa de Incremento
@@ -82,48 +96,73 @@ timeline
     Etapa 5 (10s) : 0 VUs  : Descenso Controlado
 ```
 
-#### 🚀 Comandos de Ejecución (Elegir Entorno):
-
-```bash
-# Ejecutar en ambiente de desarrollo local (dev)
-k6 run src/rest/products/scenarios/products-load.test.js -e TEST_ENV=dev
-
-# Ejecutar en ambiente de contenedores de producción (prod)
-k6 run src/rest/products/scenarios/products-load.test.js -e TEST_ENV=prod
-```
-
----
-
 ### B. Escenario 2: Estrés Exhaustivo al Límite - Punto de Quiebre (`products-stress.test.js`)
 
-**Prueba de asfixia destructiva.** Está diseñada para ejecutarse sobre el entorno `prod` aplicando la contención de recursos de Docker (CPU topado en **0.50 hilos** y RAM restringida a **256MB** con `docker-compose.stress.yaml`).
-
-El script remueve el `sleep` para enviar ráfagas de peticiones continuas sin tregua e inyecta **300 usuarios virtuales concurrentes** con el fin de saturar los hilos de Tomcat y forzar el colapso del sistema por software.
+Prueba de asfixia destructiva. Remueve el `sleep` para enviar ráfagas continuas e inyecta **300 usuarios virtuales concurrentes** con el fin de saturar los hilos de Tomcat bajo la contención física de hardware de Docker Compose.
 
 ```mermaid
 timeline
-    title Curva de Estres Exhaustivo (Punto de Quiebre)
+    title Curva de Estres Exhaustivo - Productos
     Etapa 1 (20s) : 50 VUs  : Presion Inicial Rapida
     Etapa 2 (40s) : 150 VUs : Fase de Saturacion de Hilos
     Etapa 3 (40s) : 300 VUs : Inyeccion Masiva - Destruccion de Latencia
     Etapa 4 (10s) : 0 VUs   : Rampa de Bajada
 ```
 
-#### 🚀 Comandos de Ejecución con Reporte Visual Integrado (Web Dashboard):
-
-Aprovechando la característica nativa de k6 (v0.49.0+), podemos exportar la telemetría interactiva de Grafana a un archivo HTML físico inyectando variables en la terminal de la máquina real:
-
-```bash
-# Lanzar ataque de estrés generando el reporte en la carpeta unificada
-K6_WEB_DASHBOARD=true \
-K6_WEB_DASHBOARD_EXPORT=reports/products-stress-report.html \
-k6 run src/rest/products/scenarios/products-stress.test.js -e TEST_ENV=prod
-```
-
-_Nota: Mientras la prueba esté corriendo, se puede abrir el navegador web en `http://localhost:5665` para auditar las gráficas de latencia del percentil `p(95)` y rendimiento por segundo (RPS) en vivo._
-
 ---
 
 ## 👥 5. Módulo 2: Gestión de Usuarios (`users`)
 
-_(Sección en construcción. Pendiente de definición de flujos distribuidos y orquestación síncrona por ID con el cliente de k6)._
+Este módulo evalúa la **orquestación distribuida en cascada**. Al atacar el endpoint de reportes agregados, el microservicio de usuarios procesa su procedimiento almacenado local (`sp_obtener_metricas_usuario`) y, simultáneamente, realiza llamadas HTTP síncronas hacia el catálogo de productos.
+
+### A. Escenario 1: Carga Progresiva Moderada (`users-load.test.js`)
+
+Mide la latencia base de la comunicación inter-servicio combinando consultas de base de datos relacional y peticiones síncronas bajo una curva escalonada de hasta **30 usuarios virtuales concurrentes**.
+
+```mermaid
+timeline
+    title Curva de Carga Progresiva - Usuarios
+    Etapa 1 (20s) : 10 VUs : Inicializacion de Hilos
+    Etapa 2 (40s) : 10 VUs : Estabilidad de Enlace Distribuido
+    Etapa 3 (20s) : 30 VUs : Incremento de Trafico Cruzado
+    Etapa 4 (40s) : 30 VUs : Meseta de Evaluacion de SLAs
+    Etapa 5 (10s) : 0 VUs  : Descenso Seguro
+```
+
+### B. Escenario 2: Estrés Exhaustivo en Cascada (`users-stress.test.js`)
+
+**Ataque masivo y destructivo sin pausas (`sleep`).** Al inyectar **300 usuarios virtuales simultáneos**, ambos contenedores limitados a 256MB de RAM y 0.50 CPU compiten al límite por recursos. Provoca un atasco en los hilos de Tomcat y desbordamientos en el Garbage Collector (ZGC), disparando excepciones de tiempo de espera (`502 / 504 Gateway Timeout`) demostrando el punto de colapso a nivel software.
+
+```mermaid
+timeline
+    title Curva de Estres Exhaustivo - Usuarios (Colapso)
+    Etapa 1 (20s) : 50 VUs  : Ataque Inicial Agresivo
+    Etapa 2 (40s) : 150 VUs : Congestion en Red Docker
+    Etapa 3 (40s) : 300 VUs : Colapso Distribuidos en Cascada (Timeouts)
+    Etapa 4 (10s) : 0 VUs   : Rampa de Bajada
+```
+
+---
+
+## 🚀 6. Automatización del Laboratorio (`run-tests.sh`)
+
+Para simplificar la ejecución del taller, contamos con un script automatizado multiplataforma con un menú interactivo. Gestiona de forma transparente la detección de shell (**Bash / Zsh**) para la lectura de teclado y permite activar el **Web Dashboard integrado** de Grafana k6 (v0.49.0+) para generar reportes interactivos HTML de forma nativa en la carpeta `reports/`.
+
+### Instrucciones de Operación:
+
+1. **Otorgar permisos de ejecución al script desde tu terminal física:**
+   ```bash
+   chmod +x run-tests.sh
+   ```
+2. **Iniciar el menú interactivo:**
+   ```bash
+   ./run-tests.sh
+   ```
+3. **Monitoreo en vivo de recursos (Abrir en una terminal secundaria dividida):**
+   ```bash
+   docker stats microservice_users_app microservice_products_app
+   ```
+4. **Ver los logs de colapso en tiempo real:**
+   ```bash
+   docker logs -f microservice_users_app
+   ```
