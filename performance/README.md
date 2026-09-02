@@ -160,7 +160,7 @@ Para simplificar la ejecución del taller, contamos con un script automatizado m
    ```
 3. **Monitoreo en vivo de recursos (Abrir en una terminal secundaria dividida):**
    ```bash
-   docker stats microservice_users_app microservice_products_app
+   docker stats prod-app-products prod-app-users
    ```
 4. **Ver los logs de colapso en tiempo real:**
    ```bash
