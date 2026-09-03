@@ -19,4 +19,10 @@ public class RestClientConfig {
                 .baseUrl(baseUrl)
                 .build();
     }
+
+    // @Bean
+    // public OtlpGrpcSpanExporter otlpHttpSpanExporter(@Value("${tracing.url}")
+    // String url) {
+    // return OtlpGrpcSpanExporter.builder().setEndpoint(url).build();
+    // }
 }

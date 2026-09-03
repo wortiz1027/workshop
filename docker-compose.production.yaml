@@ -47,6 +47,8 @@ services:
       DB_NAME: ${DB_NAME_PRODUCTS}
       DB_USER: ${DB_USER_PRODUCTS}
       DB_PASSWORD: ${DB_PASSWORD_PRODUCTS}
+      OTEL_SERVICE_NAME: products-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317 # Apunta al contenedor receptor por gRPC
     ports:
       - "8088:8080"
     networks:
@@ -98,6 +100,8 @@ services:
       DB_NAME: ${DB_NAME_USERS}
       DB_USER: ${DB_USER_USERS}
       DB_PASSWORD: ${DB_PASSWORD_USERS}
+      OTEL_SERVICE_NAME: products-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317 # Apunta al contenedor receptor por gRPC
     networks:
       - ntw_production
     depends_on:
