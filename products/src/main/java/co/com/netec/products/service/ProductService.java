@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 public class ProductService {
 
     private static final Logger log = LoggerFactory.getLogger(ProductService.class);
+    
     private final ProductRepository productRepository;
 
     public ProductService(ProductRepository productRepository) {

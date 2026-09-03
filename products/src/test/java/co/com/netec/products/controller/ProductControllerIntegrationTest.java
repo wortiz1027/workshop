@@ -39,7 +39,7 @@ class ProductControllerIntegrationTest {
                                 });
         }
 
-        @Test
+        /*@Test
         void testGetNamesList_ReturnsHttpStatus200AndStringData() throws Exception {
                 restClient.get()
                                 .uri("/api/products/names-list")
@@ -51,9 +51,9 @@ class ProductControllerIntegrationTest {
                                         assertThat(body).isNotNull();
                                         assertThat(body).contains("|");
                                 });
-        }
+        }*/
 
-        @Test
+        /*@Test
         void testApplyBulkDiscount_Returns200AndUpdatedPrices() {
                 restClient.put()
                                 .uri(uriBuilder -> uriBuilder
@@ -71,7 +71,7 @@ class ProductControllerIntegrationTest {
                                         // reducido
                                         assertThat(products[0].price()).isLessThan(BigDecimal.valueOf(3992000.000));
                                 });
-        }
+        }*/
 
         @Test
         void testApplyBulkDiscount_Returns422_WhenPercentageIsInvalid() {

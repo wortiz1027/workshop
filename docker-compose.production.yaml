@@ -36,7 +36,7 @@ services:
       retries: 5
 
   # 🚀 Aplicación Java de Productos (Imagen compila con su Dockerfile)
-  products-app:
+  products-app-1:
     image: workshop/products-service:latest
     container_name: prod-app-products
     restart: always
@@ -54,6 +54,25 @@ services:
     depends_on:
       db_products:
         condition: service_healthy
+
+  products-app-2:
+    image: workshop/products-service:latest
+    container_name: prod-app-products-2
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE_ENV}
+      DB_HOSTNAME: ${DB_PRODUCTS_HOSTNAME}
+      DB_PORT: ${DB_PRODUCTS_PORT}
+      DB_NAME: ${DB_NAME_PRODUCTS}
+      DB_USER: ${DB_USER_PRODUCTS}
+      DB_PASSWORD: ${DB_PASSWORD_PRODUCTS}
+    ports:
+      - "8087:8080"
+    networks:
+      - ntw_production
+    depends_on:
+      db_products:
+        condition: service_healthy        
 
   # =======================================================================
   # 👥 COMPONENTE 2: DOMINIO DE USUARIOS (API + BASE DE DATOS)
@@ -103,7 +122,7 @@ services:
     depends_on:
       db_users:
         condition: service_healthy
-      products-app:
+      products-app-1:
         condition: service_started
 
 # =======================================================================

@@ -1,5 +1,6 @@
 package co.com.netec.products.service;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -35,15 +36,16 @@ class ProductServiceUnitTest {
     private ProductService productService;
 
     @Test
+    @DisplayName("Test :: Valida consulta de todos los productos en la tabla productos")
     void testFindAll_ReturnsMappedDtoList() {
-        // Arrange
+        // Arrange/Given
         Product mockProduct = new Product("1", "CODE1", "Product 1", "Desc 1", BigDecimal.TEN);
         when(productRepository.findAll()).thenReturn(List.of(mockProduct));
 
-        // Act
+        // Act/When
         List<ProductDTO> result = productService.findAll();
 
-        // Assert
+        // Assert/then
         assertEquals(1, result.size());
         assertEquals("Product 1", result.get(0).name());
         assertEquals(BigDecimal.TEN, result.get(0).price());
