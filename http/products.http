@@ -3,6 +3,8 @@
 
 ###
 # @name ListAllProducts
+# @trace
+# @profile count=50 warmup=5 delay=100ms
 # 1. Obtener todos los productos y validar que la base de datos responda correctamente.
 GET {{baseUrl}}
 Accept: application/json
