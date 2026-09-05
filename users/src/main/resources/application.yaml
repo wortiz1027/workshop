@@ -28,4 +28,15 @@ management:
       percentiles-histogram:
         http.server.requests: true
     tags:
-      application: ${spring.application.name}            
+      application: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: http://alloy:4318/v1/traces
+  # Generic OpenTelemetry configuration (partially shared between metrics and traces)
+  opentelemetry:
+    resource-attributes:
+      application: ${spring.application.name}
+      cluster: local          

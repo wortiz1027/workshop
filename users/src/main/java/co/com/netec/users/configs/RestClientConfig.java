@@ -14,7 +14,7 @@ public class RestClientConfig {
     @Bean
     public RestClient productRestClient(
             @Value("${api.products.url}") String baseUrl) {
-        log.info("[* * * * * * ] ------> [URL_PRODUCTS]: [{}]", baseUrl);
+        log.debug("[* * * * * * ] ------> [URL_PRODUCTS]: [{}]", baseUrl);
         return RestClient.builder()
                 .baseUrl(baseUrl)
                 .build();

@@ -26,7 +26,7 @@ services:
     command: --lower_case_table_names=1
     volumes:
       - production_mysql_data_products:/var/lib/mysql
-      - ./products/.devcontainer/mysql-products-schema-v1.sql:/docker-entrypoint-initdb.d/schema.sql
+      - ../products/.devcontainer/mysql-products-schema-v1.sql:/docker-entrypoint-initdb.d/schema.sql
     networks:
       - ntw_production
     healthcheck:
@@ -75,7 +75,7 @@ services:
       - "3311:3306"
     volumes:
       - production_mysql_data_users:/var/lib/mysql
-      - ./users/.devcontainer/mysql-users-schema-v1.sql:/docker-entrypoint-initdb.d/schema.sql
+      - ../users/.devcontainer/mysql-users-schema-v1.sql:/docker-entrypoint-initdb.d/schema.sql
     command: --lower_case_table_names=1
     networks:
       - ntw_production
@@ -93,6 +93,8 @@ services:
     ports:
       - "8089:8081"
     environment:
+      MANAGEMENT_OTLP_TRACING_ENDPOINT: http://alloy:4318/v1/traces
+      SPRING_APPLICATION_NAME: users-service
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE_ENV} # 🚀 ACTIVA EL PERFIL DE PRODUCCIÓN
       PRODUCTS_API_URL: ${PRODUCTS_BASE_URL}
       DB_HOSTNAME: ${DB_USERS_HOSTNAME}
@@ -100,8 +102,9 @@ services:
       DB_NAME: ${DB_NAME_USERS}
       DB_USER: ${DB_USER_USERS}
       DB_PASSWORD: ${DB_PASSWORD_USERS}
-      OTEL_SERVICE_NAME: products-service
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317 # Apunta al contenedor receptor por gRPC
+      OTEL_SERVICE_NAME: users-service
+    volumes:
+      - vlm_users_logs:/app/logs  
     networks:
       - ntw_production
     depends_on:
@@ -121,3 +124,6 @@ networks:
 volumes:
   production_mysql_data_products:
   production_mysql_data_users:
+  vlm_users_logs:
+    external: true
+      

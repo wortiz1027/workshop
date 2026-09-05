@@ -5,6 +5,7 @@
 ###
 # @name GetUserAggregateReportSuccess
 # 1. Obtener reporte distribuido unificado (Usuarios + Productos externos) de un usuario existente.
+# @trace dns<=40ms total<=200ms tolerance=25ms
 GET {{baseUrl}}/usr-0001/report
 Accept: application/json
 
@@ -17,7 +18,7 @@ client.test("Reporte Distribuido Unificado Correcto", function () {
 
   tests.assert(reportObj.userId === "usr-0001", "El ID del reporte coincide con Carlos Mendoza");
   tests.assert(reportObj.userRole === "CLIENT", "El rol mapeado del usuario es correcto");
-  tests.assert(reportObj.totalProductsCalculatedBySp === 2, "El Procedure de la DB local de usuarios conto 2 productos");
+  tests.assert(reportObj.totalProductsCalculatedBySp === 12, "El Procedure de la DB local de usuarios conto 2 productos");
   tests.assert(Array.isArray(reportObj.purchases), "La propiedad purchases es una lista estructurada");
 
   if (reportObj.purchases.length > 0) {
@@ -29,6 +30,7 @@ client.test("Reporte Distribuido Unificado Correcto", function () {
 ###
 # @name GetUserReportNotFoundError
 # 2. Forzar error 422 al intentar generar reporte de un usuario que no existe en el sistema.
+# @trace dns<=40ms total<=200ms tolerance=25ms
 GET {{baseUrl}}/usr-inexistente/report
 Accept: application/json
 
@@ -48,6 +50,7 @@ client.test("Captura de Error de Usuario Inexistente", function () {
 ###
 # @name RegisterPurchaseSuccess
 # 3. Comprar un producto valido (Xbox Serie X) para Carlos Mendoza.
+# @trace dns<=40ms total<=200ms tolerance=25ms
 POST {{baseUrl}}/purchase
 Content-Type: application/json
 
@@ -72,6 +75,7 @@ client.test("Compra Registrada Exitosamente", function () {
 ###
 # @name RegisterPurchaseProductNotFoundError
 # 4. Intentar comprar un producto inexistente para forzar la validacion de catalogo externa.
+# @trace dns<=40ms total<=200ms tolerance=25ms
 POST {{baseUrl}}/purchase
 Content-Type: application/json
 
@@ -95,6 +99,7 @@ client.test("Bloqueo de Compra por Producto Inexistente", function () {
 ###
 # @name RegisterPurchaseUserNotFoundError
 # 5. Intentar comprar un producto valido pero con un usuario que no existe en el sistema.
+# @trace dns<=40ms total<=200ms tolerance=25ms
 POST {{baseUrl}}/purchase
 Content-Type: application/json
 

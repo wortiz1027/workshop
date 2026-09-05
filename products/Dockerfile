@@ -42,7 +42,11 @@ FROM eclipse-temurin:21-alpine AS runner
 WORKDIR /app
 
 # Crear un usuario de sistema sin shell interactiva para mitigar exploits de terminal
-RUN addgroup -S spring && adduser -S spring -G spring -h /app -s /sbin/nologin && rm -rf /var/cache/apk/* /lib/apk/db/*
+RUN addgroup -S spring && \
+	adduser -S spring -G spring -h /app -s /sbin/nologin && \
+	mkdir -p /app/logs && \
+	chown -R spring:spring /app && \
+	rm -rf /var/cache/apk/* /lib/apk/db/*
 
 USER spring:spring
 
@@ -70,9 +74,11 @@ COPY --from=builder /build/extracted/META-INF /app/META-INF
 COPY --from=builder /build/extracted/BOOT-INF/classes /app
 
 # Parámetros optimizados para ejecución en nube y Garbage Collector ZGC de Ultra Baja Latencia
-ENV JAVA_OPTS="-XX:+UseZGC -XX:+ZGenerational -XX:+UnlockDiagnosticVMOptions -Dfile.encoding=UTF-8 -XX:+AlwaysPreTouch -Xss256k"
+ENV JAVA_OPTS="-XX:+UseZGC -XX:+ZGenerational -XX:+UnlockDiagnosticVMOptions -Dfile.encoding=UTF-8 -XX:+AlwaysPreTouch -Xss256k -Dlogging.config=file:/app/logback-spring.xml"
 
 EXPOSE 8080
+
+VOLUME ["/app/logs"]
 
 # 🚀 LANZAMIENTO ESTÁNDAR: Ejecuta directamente la clase principal reduciendo el overhead de arranque
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -cp .:./lib/* co.com.netec.products.Application"]

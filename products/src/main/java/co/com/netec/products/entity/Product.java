@@ -3,11 +3,18 @@ package co.com.netec.products.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.NamedStoredProcedureQuery;
+import jakarta.persistence.ParameterMode;
+import jakarta.persistence.StoredProcedureParameter;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 
 @Entity
 @Table(name = "PRODUCTS")
+@NamedStoredProcedureQuery(name = "Product.listar_nombres_productos", procedureName = "sp_listar_nombres_productos", parameters = {
+        @StoredProcedureParameter(mode = ParameterMode.IN, name = "dummy", type = Integer.class),
+        @StoredProcedureParameter(mode = ParameterMode.OUT, name = "p_lista_nombres", type = String.class)
+})
 public class Product {
 
     @Id

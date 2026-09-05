@@ -5,7 +5,7 @@ export const environments = {
     },
     prod: {
         products_url: 'http://localhost:8088',
-        users_url: 'http://localhost:8081',
+        users_url: 'http://localhost:8089',
     }
 
 }

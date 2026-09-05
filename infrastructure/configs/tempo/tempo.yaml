@@ -1,0 +1,35 @@
+stream_over_http_enabled: true
+server:
+  http_listen_port: 3200
+
+# Instructs Tempo 3.0 to run as a single, combined process (Monolithic mode)
+target: all
+
+# Defines where Tempo receives spans from Grafana Alloy
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+# REPARACIÓN DEL ERROR: Configura el generador de búsquedas en memoria local
+metrics_generator:
+  registry:
+    collection_interval: 15s
+  storage:
+    path: /tmp/tempo/generator/wal
+    remote_write: []
+  # Esto soluciona el error "empty ring" en entornos de un solo contenedor
+  ring:
+    kvstore:
+      store: inmemory
+
+# Specifies where trace blocks are written on your local disk
+storage:
+  trace:
+    backend: local
+    local:
+      path: /tmp/tempo/traces

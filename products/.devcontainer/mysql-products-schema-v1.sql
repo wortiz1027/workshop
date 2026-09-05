@@ -76,13 +76,12 @@ INSERT INTO PRODUCTS VALUES ('34d109ca-2c0d-481f-8c96-6d1c959711ca','UY3X5R0J3U'
 
 ALTER USER 'root'@'%' IDENTIFIED BY 'products2026++';
 ALTER USER 'products'@'%' IDENTIFIED BY 'products2026';
-GRANT ALL PRIVILEGES ON productsdb.* TO 'root'@'%';
 GRANT ALL PRIVILEGES ON productsdb.* TO 'products'@'%';
 FLUSH PRIVILEGES;
 
 DELIMITER //
 
-CREATE PROCEDURE sp_listar_nombres_productos(OUT p_lista_nombres TEXT)
+CREATE PROCEDURE sp_listar_nombres_productos(OUT p_lista_nombres VARCHAR(2000))
 BEGIN
     -- 1. Declarar variables locales
     DECLARE v_finalizado INT DEFAULT 0;

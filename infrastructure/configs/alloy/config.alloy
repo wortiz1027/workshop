@@ -1,0 +1,86 @@
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+// 1. Monitorear de forma dinámica todas las subcarpetas de logs
+local.file_match "workshop_logs" {
+    path_targets = [
+        // 🚀 TARGET 1: Servicio de Usuarios
+        {
+            __address__  = "localhost",
+            __path__     = "/var/log/spring/users/*.log",
+            app          = "users",
+            service_name = "users",
+        },
+        // 🚀 TARGET 2: Servicio de Productos
+        {
+            __address__  = "localhost",
+            __path__     = "/var/log/spring/products/*.log",
+            app          = "products",
+            service_name = "products",
+        },
+    ]
+}
+
+// 2. Leer los archivos encontrados en tiempo real
+loki.source.file "scraped_logs" {
+    targets    = local.file_match.workshop_logs.targets
+    forward_to = [loki.process.parse_json.receiver]
+    tail_from_end = true
+}
+
+// 3. Procesar las líneas JSON
+//loki.process "parse_json" {
+//    stage.json {
+//        expressions = { level = "log_level", app = "service_name" }
+//    }
+//    
+//    stage.labels {
+//        values = {
+//            level = "level",
+//            app   = "app", 
+//        }
+//    }
+//    forward_to = [loki.write.loki_backend.receiver]
+//}
+
+loki.process "parse_json" {    
+    stage.json {
+        // 🚀 CORRECCIÓN: El JSON de Logstash genera "level", no "log_level"
+        expressions = { 
+            level = "level", 
+            logger = "logger",
+            application_name = "context",
+            environment = "environment",
+            app   = "app",
+        }
+    }
+    
+    // 2. Si el JSON no tiene el nombre, lo extraemos del nombre del archivo en el disco
+    stage.regex {
+        source      = "filename"
+        expression  = "/var/log/spring/(?P<extracted_app>[^/]+)/"
+    }
+
+    stage.labels {
+        values = {
+            level            = "level",            // TRACE/DEBUG/INFO/WARN/ERROR
+            application_name = "application_name", // one value per service
+            environment      = "environment",      // dev/staging/prod
+            app          = "extracted_app",
+            service_name = "extracted_app", // 🚀 Esto elimina el 'unknown_service' en Loki
+        }
+    }
+    forward_to = [loki.write.loki_backend.receiver]
+}
+
+// 4. Enviar hacia Loki
+loki.write "loki_backend" {
+    endpoint {
+        url = "http://loki:3100/loki/api/v1/push"
+        tenant_id  = "default"
+        batch_wait = "1s"
+        batch_size = "1MB"
+    }
+}

@@ -33,14 +33,11 @@ management:
   tracing:
     sampling:
       probability: 1.0
-
+  otlp:
+    tracing:
+      endpoint: http://alloy:4318/v1/traces
   # Generic OpenTelemetry configuration (partially shared between metrics and traces)
   opentelemetry:
     resource-attributes:
       application: ${spring.application.name}
       cluster: local
-
-  # Traces-specific OpenTelemetry configuration
-  otlp:
-    tracing:
-      endpoint: http://jaeger:4318/v1/traceso

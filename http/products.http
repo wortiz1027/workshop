@@ -4,6 +4,8 @@
 ###
 # @name ListAllProducts
 # 1. Obtener todos los productos y validar que la base de datos responda correctamente.
+# @trace dns<=40ms total<=200ms tolerance=25ms
+# @profile count=50 warmup=5 delay=100ms
 GET {{baseUrl}}
 Accept: application/json
 
@@ -23,6 +25,7 @@ client.test("Status es 200 y array no vacio", function () {
 ###
 # @name GetSingleProductFromExternalCatalog
 # Pruebba directa para validar el nuevo endpoint de un solo ID antes de armar el reporte
+# @trace dns<=40ms total<=200ms tolerance=25ms
 GET {{baseUrl}}/3d703247-54bc-47ef-a69d-7531a638022e
 Accept: application/json
 
@@ -42,6 +45,7 @@ client.test("Consulta Individual de Producto Exitosa", function () {
 ###
 # @name GetConcatenatedNames
 # 2. Ejecutar el Procedimiento Almacenado a través de la API y comprobar el separador.
+# @trace dns<=40ms total<=200ms tolerance=25ms
 GET {{baseUrl}}/names-list
 
 # @script test

@@ -1,81 +1,87 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
+    <!-- Incluye las configuraciones base por defecto de Spring -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
 
-    <!-- Variables personalizadas para rutas y formatos -->
-    <property name="LOGS_DIR" value="./logs" />
-    <property name="CONSOLE_LOG_PATTERN" 
+    <!-- Patrón personalizado para tu consola local (Desarrollo) -->
+    <property name="CUSTOM_CONSOLE_LOG_PATTERN" 
               value="%d{yyyy-MM-dd HH:mm:ss.SSS} %magenta([%thread]) %highlight(%-5level) %logger{36} - %msg%n" />
-    <property name="FILE_LOG_PATTERN" 
-              value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n" />
-    <property name="LOKI_LOG_PATTERN" 
-              value="%d{yyyy-MM-dd HH:mm:ss} [%thread] %magenta(%-5level) %green([%-50.50class]) >>> %cyan(%msg) %n" />
 
-    <!-- 1. APPENDER: Consola (Salida estándar con colores para desarrollo local) -->
-    <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
+    <!-- 1. APPENDER: Consola estándar unificada utilizando tu patrón con colores -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            <pattern>${CUSTOM_CONSOLE_LOG_PATTERN}</pattern>
         </encoder>
     </appender>
 
-    <!-- 2. APPENDER: Archivo Rotativo (Para auditoría y entornos de testing/producción) -->
-    <appender name="RollingFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>/tmp/products-app.log</file>
-        <encoder>
-            <pattern>${FILE_LOG_PATTERN}</pattern>
-        </encoder>
+    <!-- ======================================================================= -->
+    <!-- PERFIL DE PRODUCCIÓN (Docker / Grafana Alloy)                           -->
+    <!-- ======================================================================= -->
+    <springProfile name="prod">
+        <!-- Guardar logs en el volumen compartido de Docker en formato JSON puro -->
+        <appender name="JSON_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>/app/logs/products.log</file>
+            
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>/app/logs/archived/products-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+                <maxFileSize>10MB</maxFileSize>
+                <maxHistory>7</maxHistory>
+            </rollingPolicy>
+            
+            <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+                <providers>
+                    <timestamp/>
+                    <loggerName/>
+                    <logLevel/>
+                    <threadName/>
+                    <message/>
+                    <stackTrace/>
+                    <mdc/> <!-- Inyecta trace_id y span_id de OpenTelemetry -->
+                </providers>
+            </encoder>
+        </appender>
+
+         <!-- Logger de nuestra aplicación en modo INFO para el taller -->
+        <logger name="co.com.netec.products" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="JSON_FILE" />        
+        </logger>
+
+        <!-- Muestra los SQLs formateados en la consola y Loki -->
+        <logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="JSON_FILE" />
+        </logger>
         
-        <!-- Política de rotación: Crea un archivo nuevo por día o si supera los 10MB -->
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${LOGS_DIR}/archived/products-app-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-            <maxFileSize>10MB</maxFileSize>
-            <maxHistory>30</maxHistory> <!-- Retiene históricos por 30 días -->
-            <totalSizeCap>1GB</totalSizeCap>
-        </rollingPolicy>
-    </appender>
+        <!-- Muestra los valores reales que se inyectan en los parámetros (?, ?) -->
+        <logger name="org.hibernate.orm.jdbc.bind" level="TRACE" additivity="false">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="JSON_FILE" />
+        </logger>
 
-    <!-- Loki Logging -->
-    <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
-        <http>
-            <url>http://loki:3100/loki/api/v1/push</url>
-        </http>
-        <format>
-            <label>
-                <pattern>app=products, environment=production, region=Docker, level=%level</pattern>
-                <readMarkers>true</readMarkers>
-            </label>
-            <message>
-                <pattern>
-                    ${LOKI_LOG_PATTERN}
-                </pattern>
-            </message>
-        </format>
-    </appender>
-    <!-- 3. CONFIGURACIÓN DE NIVELES POR PAQUETE -->
-    
-    <!-- Logger de nuestra aplicación en modo DEBUG para el taller -->
-    <logger name="co.com.netec.products" level="DEBUG" additivity="false">
-        <appender-ref ref="Console" />
-        <appender-ref ref="RollingFile" />
-        <appender-ref ref="LOKI" />
-    </logger>
+        <!-- Configuración raíz para producción -->
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="JSON_FILE"/>
+        </root>
+    </springProfile>    
 
-    <!-- Loggers para rastrear SQL Nativo, parámetros y JPA/Hibernate -->
-    <!-- Muestra los SQLs formateados en la consola -->
-    <logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
-        <appender-ref ref="Console" />
-        <appender-ref ref="LOKI" />
-    </logger>
-    <!-- Muestra los valores reales que se inyectan en los parámetros (?, ?) -->
-    <logger name="org.hibernate.orm.jdbc.bind" level="TRACE" additivity="false">
-        <appender-ref ref="Console" />
-        <appender-ref ref="LOKI" />
-    </logger>
+    <!-- ======================================================================= -->
+    <!-- PERFIL DE DESARROLLO / LOCAL (Tu máquina física)                        -->
+    <!-- ======================================================================= -->
+    <springProfile name="!prod">
+         <logger name="co.com.netec.products" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE" />    
+        </logger>
+        
+        <!-- Muestra los SQLs en la consola local -->
+        <logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE" />
+        </logger>
 
-    <!-- Raíz del sistema (Fallback para Spring Boot, Tomcat, etc.) en INFO -->
-    <root level="INFO">
-        <appender-ref ref="Console" />
-        <appender-ref ref="RollingFile" />
-        <appender-ref ref="LOKI" />
-    </root>
-
+        <!-- Configuración raíz para desarrollo local -->
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
 </configuration>
