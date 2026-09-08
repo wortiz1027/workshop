@@ -3,6 +3,10 @@ logging {
   format = "logfmt"
 }
 
+// ==========================================
+// SECCIÓN DE LOGS (LOKI) - Tu config actual
+// ==========================================
+
 // 1. Monitorear de forma dinámica todas las subcarpetas de logs
 local.file_match "workshop_logs" {
     path_targets = [
@@ -31,23 +35,8 @@ loki.source.file "scraped_logs" {
 }
 
 // 3. Procesar las líneas JSON
-//loki.process "parse_json" {
-//    stage.json {
-//        expressions = { level = "log_level", app = "service_name" }
-//    }
-//    
-//    stage.labels {
-//        values = {
-//            level = "level",
-//            app   = "app", 
-//        }
-//    }
-//    forward_to = [loki.write.loki_backend.receiver]
-//}
-
 loki.process "parse_json" {    
     stage.json {
-        // 🚀 CORRECCIÓN: El JSON de Logstash genera "level", no "log_level"
         expressions = { 
             level = "level", 
             logger = "logger",
@@ -57,7 +46,6 @@ loki.process "parse_json" {
         }
     }
     
-    // 2. Si el JSON no tiene el nombre, lo extraemos del nombre del archivo en el disco
     stage.regex {
         source      = "filename"
         expression  = "/var/log/spring/(?P<extracted_app>[^/]+)/"
@@ -65,11 +53,11 @@ loki.process "parse_json" {
 
     stage.labels {
         values = {
-            level            = "level",            // TRACE/DEBUG/INFO/WARN/ERROR
-            application_name = "application_name", // one value per service
-            environment      = "environment",      // dev/staging/prod
-            app          = "extracted_app",
-            service_name = "extracted_app", // 🚀 Esto elimina el 'unknown_service' en Loki
+            level            = "level",            
+            application_name = "application_name", 
+            environment      = "environment",      
+            app              = "extracted_app",
+            service_name     = "extracted_app", 
         }
     }
     forward_to = [loki.write.loki_backend.receiver]
@@ -84,3 +72,39 @@ loki.write "loki_backend" {
         batch_size = "1MB"
     }
 }
+
+// ==========================================
+// 🚀 NUEVA SECCIÓN DE TRAZAS (TEMPO)
+// ==========================================
+otelcol.exporter.debug "ver_en_consola" {
+  verbosity = "detailed"
+}
+
+// 5. RECEPTOR: Escucha las trazas OTLP que envía tu Spring Boot
+otelcol.receiver.otlp "spring_boot_traces" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  // Envía lo recibido al componente exportador de Tempo que está abajo
+  output {
+    traces = [otelcol.exporter.otlp.send_to_tempo.input,
+      otelcol.exporter.debug.ver_en_consola.input]
+  }
+}
+
+// 6. EXPORTADOR: Envía las trazas directamente a Grafana Tempo
+otelcol.exporter.otlp "send_to_tempo" {
+  client {
+    endpoint = "tempo:4317"
+    tls {
+      insecure = true
+    }
+  }
+}
+
+
+

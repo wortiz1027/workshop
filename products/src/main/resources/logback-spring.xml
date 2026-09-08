@@ -2,6 +2,7 @@
 <configuration>
     <!-- Incluye las configuraciones base por defecto de Spring -->
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/base.xml"/>
 
     <!-- Patrón personalizado para tu consola local (Desarrollo) -->
     <property name="CUSTOM_CONSOLE_LOG_PATTERN" 
@@ -44,7 +45,7 @@
          <!-- Logger de nuestra aplicación en modo INFO para el taller -->
         <logger name="co.com.netec.products" level="INFO" additivity="false">
             <appender-ref ref="CONSOLE" />
-            <appender-ref ref="JSON_FILE" />        
+            <appender-ref ref="JSON_FILE" />
         </logger>
 
         <!-- Muestra los SQLs formateados en la consola y Loki -->
@@ -71,11 +72,31 @@
     <!-- ======================================================================= -->
     <springProfile name="!prod">
          <logger name="co.com.netec.products" level="INFO" additivity="false">
-            <appender-ref ref="CONSOLE" />    
+            <appender-ref ref="CONSOLE" />
         </logger>
         
         <!-- Muestra los SQLs en la consola local -->
         <logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE" />
+        </logger>
+
+        <!-- Muestra los SQLs en la consola local -->
+        <logger name="io.micrometer.tracing" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE" />
+        </logger>
+
+        <!-- Muestra los SQLs en la consola local -->
+        <logger name="io.opentelemetry" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE" />
+        </logger>
+
+        <!-- Muestra los SQLs en la consola local -->
+        <logger name="net.ttddyy.observation" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE" />
+        </logger>
+
+        <!-- Muestra los SQLs en la consola local -->
+        <logger name="org.springframework.web.filter.CommonsRequestLoggingFilter" level="DEBUG" additivity="false">
             <appender-ref ref="CONSOLE" />
         </logger>
 

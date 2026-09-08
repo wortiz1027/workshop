@@ -1,0 +1,48 @@
+#receivers:
+#  otlp:
+#    protocols:
+#      grpc:
+#        endpoint: 0.0.0.0:4317
+#      http:
+#        endpoint: 0.0.0.0:4318
+#
+#exporters:
+#  # 'jaeger_storage' is a native v2 exporter that routes data to your selected storage
+#  jaeger_storage:
+#    storage_type: memory
+#
+#processors:
+#  batch:
+#
+## The extensions block enables the Jaeger Web UI and alternative querying endpoints
+#extensions:
+#  jaeger_query:
+#    ui:
+#      enabled: true
+#
+#service:
+#  extensions: [jaeger_query]
+#  pipelines:
+#    traces:
+#      receivers: [otlp]
+#      processors: [batch]
+#      exporters: [jaeger_storage]
+
+# otelcol.yaml
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318 # required
+
+exporters:
+  otlp_http:
+    endpoint: http://jaeger:4318
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [otlp_http]

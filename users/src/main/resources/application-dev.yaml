@@ -3,15 +3,34 @@ spring:
     activate:
       on-profile: dev
   datasource:
-    # Para el DevContainer local, apunta al host que comparte red con su MySQL de desarrollo [1]
-    url: jdbc:mysql://${DB_HOSTNAME}:${DB_PORT}/${DB_NAME}?useSSL=false&serverTimezone=UTC
-    username: ${DB_USER}
-    password: ${DB_PASSWORD}
+    url: jdbc:mysql://${DB_HOSTNAME:localhost}:${DB_PORT:3306}/${DB_NAME:usersdb}?useSSL=false&serverTimezone=UTC
+    username: ${DB_USER:workshop}
+    password: ${DB_PASSWORD:workshop2026}
     driver-class-name: com.mysql.cj.jdbc.Driver
+    
+    # 🔧 CONFIGURACIÓN HIKARI PARA DESARROLLO
+    hikari:
+      pool-name: users-dev-hikari-pool
+      # Empezamos con pocas conexiones para ahorrar memoria en local
+      minimum-idle: 2
+      maximum-pool-size: 5
+      # Tiempo máximo que espera el código por una conexión antes de dar error (30 segundos)
+      connection-timeout: 30000
+      # Cuánto tiempo puede estar una conexión ociosa en el pool antes de cerrarse (10 minutos)
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+    # Captura del texto del SQL y parámetros reales para telemetría
+    proxy:
+      logging: info
+      query:
+        enable-logging: true
+        log-entry-creator: single-line
+
   jpa:
     hibernate:
       ddl-auto: validate
+
 api:
   products:
-    # En desarrollo local de tu IDE, busca la API de productos en tu localhost de la máquina física [1]
-    url: ${PRODUCTS_API_URL}/api/products
+    url: ${PRODUCTS_API_URL:http://localhost:8080}/api/products

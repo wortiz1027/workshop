@@ -15,6 +15,13 @@ distributor:
         http:
           endpoint: 0.0.0.0:4318
 
+ingester:
+  lifecycler:
+    ring:
+      kvstore:
+        store: inmemory
+      replication_factor: 1
+
 # REPARACIÓN DEL ERROR: Configura el generador de búsquedas en memoria local
 metrics_generator:
   registry:
@@ -33,3 +40,5 @@ storage:
     backend: local
     local:
       path: /tmp/tempo/traces
+    wal:
+      path: /tmp/tempo/wal

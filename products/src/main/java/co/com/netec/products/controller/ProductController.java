@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 import co.com.netec.products.dtos.ProductDTO;
 import co.com.netec.products.exception.ProductBusinessException;
 import co.com.netec.products.service.ProductService;
-
 import java.math.BigDecimal;
 import java.util.List;
 

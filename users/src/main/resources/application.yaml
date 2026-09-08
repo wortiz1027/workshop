@@ -5,15 +5,20 @@ spring:
   application:
     name: users
   profiles:
-    # 🚀 Si no se inyecta ninguna variable externa del sistema, activa el perfil 'dev' por defecto [1]
     active: ${SPRING_PROFILES_ACTIVE:dev}
   jpa:
+    hibernate:
+      ddl-auto: validate
     show-sql: true
+    open-in-view: false
     properties:
       hibernate:
         format_sql: true
         physical_naming_strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
 
+# ==========================================
+# 🚀 SECCIÓN DE OBSERVABILIDAD CORREGIDA (SPRING BOOT 4)
+# ==========================================
 management:
   endpoints:
     web:
@@ -26,17 +31,27 @@ management:
   metrics:
     distribution:
       percentiles-histogram:
-        http.server.requests: true
+        http:
+          server:
+            requests: true
     tags:
       application: ${spring.application.name}
+      
   tracing:
     sampling:
       probability: 1.0
+    propagation:
+      type: W3C
   otlp:
-    tracing:
-      endpoint: http://alloy:4318/v1/traces
-  # Generic OpenTelemetry configuration (partially shared between metrics and traces)
+    metrics:
+      export:
+        url: http://alloy:4318/v1/metrics
   opentelemetry:
-    resource-attributes:
-      application: ${spring.application.name}
-      cluster: local          
+    tracing:
+      export:
+        otlp:
+          endpoint: http://jaeger:4318/v1/traces
+    logging:
+      export:
+        otlp:
+          endpoint: http://alloy:4318/v1/logs

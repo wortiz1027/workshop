@@ -18,7 +18,9 @@ services:
     container_name: alloy
     restart: always
     ports:
-      - "12345:12345" # Alloy UI
+      - "4317:4317" # Puerto gRPC OTLP
+      - "4318:4318" # Puerto HTTP OTLP
+      - "12345:12345" # Panel de control de Alloy
     command:
       - run
       - --server.http.listen-addr=0.0.0.0:12345

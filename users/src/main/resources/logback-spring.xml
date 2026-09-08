@@ -2,6 +2,7 @@
 <configuration>
     <!-- Incluye las configuraciones base por defecto de Spring -->
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/base.xml"/>
 
     <!-- Patrón personalizado para tu consola local (Desarrollo) -->
     <property name="CUSTOM_CONSOLE_LOG_PATTERN" 
@@ -73,8 +74,14 @@
          <logger name="co.com.netec.users" level="INFO" additivity="false">
             <appender-ref ref="CONSOLE" />    
         </logger>
+        
         <!-- Muestra los SQLs en la consola local -->
         <logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE" />
+        </logger>
+
+        <!-- Muestra los SQLs en la consola local -->
+        <logger name="net.ttddyy.observation" level="DEBUG" additivity="false">
             <appender-ref ref="CONSOLE" />
         </logger>
 

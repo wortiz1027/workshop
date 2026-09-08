@@ -1,4 +1,4 @@
-package co.com.netec.products.configurations;
+package co.com.netec.users.configurations;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

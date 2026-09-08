@@ -8,6 +8,11 @@ import co.com.netec.users.entities.User;
 import co.com.netec.users.entities.UserProduct;
 import co.com.netec.users.exceptions.UserBusinessException;
 import co.com.netec.users.repositories.UserRepository;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -25,46 +30,71 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final RestClient productRestClient;
+    private final Tracer tracer;
 
-    public UserService(UserRepository userRepository, RestClient productRestClient) {
+    public UserService(UserRepository userRepository, RestClient productRestClient, OpenTelemetry openTelemetry) {
         this.userRepository = userRepository;
         this.productRestClient = productRestClient;
+        this.tracer = openTelemetry.getTracer("co.com.netec.users.UserService");
     }
 
-    @Transactional(readOnly = false) // readOnly=false requerido debido al Cursor/SP en MySQL
+    @Transactional(readOnly = false)
     public UserAggregateReportDTO getUserFullReport(String userId) {
         log.debug("Iniciando agregación de datos para el usuario ID: {}", userId);
 
-        // 1. Buscar usuario y sus productos locales optimizado con FETCH JOIN
-        User user = userRepository.findByIdWithProducts(userId)
-                .orElseThrow(
-                        () -> new UserBusinessException("El usuario con ID '" + userId + "' no existe en el sistema."));
+        Span customSpan = tracer.spanBuilder("user_products").startSpan();
 
-        // 2. Invocar Procedimiento Almacenado local para métricas analíticas
-        Integer totalFromSp = userRepository.obtenerMetricasUsuario(userId);
+        if (userId != null) {
+            customSpan.setAttribute("user.id", userId);
+            customSpan.setAttribute("debug.status", "attribute_injected_ok");
+        } else {
+            customSpan.setAttribute("user.id", "WARNING_USER_ID_NULL");
+            customSpan.setAttribute("debug.status", "attribute_injected_error");
+        }
 
-        // 3. CAPA DE COMUNICACIÓN: Mapear y enriquecer cada producto consumiendo el
-        // RestClient
-        List<UserProductDetailDTO> purchasesDetail = user.getPurchasedProducts().stream()
-                .map(relation -> {
-                    ProductDTO externalProduct = fetchProductDetailsDefensive(relation.getProductId());
-                    return new UserProductDetailDTO(
-                            relation.getRelationId(),
-                            relation.getProductId(),
-                            relation.getPurchaseDate(),
-                            externalProduct);
-                })
-                .toList();
+        try (Scope scope = customSpan.makeCurrent()) {
 
-        log.info("Reporte unificado del usuario [{}] generado con éxito.", user.getName());
+            io.opentelemetry.api.baggage.Baggage baggage = io.opentelemetry.api.baggage.Baggage.builder()
+                    .put("user.id", userId != null ? userId : "UNKNOWN")
+                    .build();
 
-        return new UserAggregateReportDTO(
-                user.getId(),
-                user.getName(),
-                user.getEmail(),
-                user.getRole(),
-                totalFromSp,
-                purchasesDetail);
+            try (Scope baggageScope = baggage.makeCurrent()) {
+
+                User user = userRepository.findByIdWithProducts(userId)
+                        .orElseThrow(
+                                () -> new UserBusinessException(
+                                        "El usuario con ID '" + userId + "' no existe en el sistema."));
+
+                Integer totalFromSp = userRepository.obtenerMetricasUsuario(userId);
+
+                List<UserProductDetailDTO> purchasesDetail = user.getPurchasedProducts().stream()
+                        .map(relation -> {
+                            ProductDTO externalProduct = fetchProductDetailsDefensive(relation.getProductId());
+                            return new UserProductDetailDTO(
+                                    relation.getRelationId(),
+                                    relation.getProductId(),
+                                    relation.getPurchaseDate(),
+                                    externalProduct);
+                        })
+                        .toList();
+
+                log.info("Reporte unificado del usuario [{}] generado con éxito.", user.getName());
+
+                return new UserAggregateReportDTO(
+                        user.getId(),
+                        user.getName(),
+                        user.getEmail(),
+                        user.getRole(),
+                        totalFromSp,
+                        purchasesDetail);
+        
+            }
+        } catch (Exception e) {
+            customSpan.recordException(e);
+            throw e;
+        } finally {
+            customSpan.end();
+        }
     }
 
     @Transactional
@@ -72,13 +102,10 @@ public class UserService {
         log.info("Iniciando proceso de compra distribuida. Usuario: {}, Producto: {}", request.userId(),
                 request.productId());
 
-        // 1. Validar localmente que el usuario exista
         User user = userRepository.findById(request.userId())
                 .orElseThrow(() -> new UserBusinessException(
                         "No se puede registrar la compra. El usuario con ID '" + request.userId() + "' no existe."));
 
-        // 2. VALIDACIÓN ACTIVA DISTRIBUIDA: Consultar si el producto existe en el
-        // catálogo externo
         ProductDTO externalProduct;
         try {
             ProductDTO[] catalog = productRestClient.get()
@@ -106,28 +133,21 @@ public class UserService {
             externalProduct = foundProduct;
 
         } catch (UserBusinessException e) {
-            throw e; // Relanzar nuestra excepción controlada de negocio
+            throw e;
         } catch (Exception e) {
-            // Si el servicio externo está caído por completo, bloqueamos la compra por
-            // seguridad de datos
             throw new UserBusinessException(
                     "El sistema de inventario no está disponible en este momento. Intente más tarde.");
         }
 
-        // 3. Crear el nuevo registro de relación asociando la clave foránea local
         String generatedRelationId = "rel-" + UUID.randomUUID().toString().substring(0, 8);
         UserProduct newPurchase = new UserProduct(generatedRelationId, request.productId(), LocalDateTime.now());
 
-        // El método helper de la entidad se encarga de asociar el usuario y activar la
-        // cascada de JPA
         user.addProduct(newPurchase);
 
-        // Guardamos explícitamente (u ocultamente al terminar el método transaccional)
         userRepository.save(user);
 
         log.info("Compra registrada exitosamente con el ID de relación: {}", generatedRelationId);
 
-        // Retornar el detalle enriquecido inmediatamente al cliente
         return new UserProductDetailDTO(
                 newPurchase.getRelationId(),
                 newPurchase.getProductId(),
@@ -135,18 +155,12 @@ public class UserService {
                 externalProduct);
     }
 
-    /**
-     * Consume el microservicio de productos de manera tolerante a fallos
-     * (Resiliencia Básica)
-     */
     private ProductDTO fetchProductDetailsDefensive(String productId) {
         try {
             log.info("[product_id:{}] - [message: consultando la api de productos por id: {}]", productId, productId);
             return productRestClient.get()
-                    // Inyecta dinámicamente el ID en la URL remota: /api/products/{id}
                     .uri("/{id}", productId)
                     .retrieve()
-                    // Manejo avanzado del código de estado HTTP remoto
                     .onStatus(status -> status.value() == 422 || status.value() == 404, (req, res) -> {
                         log.warn("El producto con ID {} no existe en el catálogo remoto.", productId);
                     })

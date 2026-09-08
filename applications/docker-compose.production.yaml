@@ -48,7 +48,7 @@ services:
       DB_USER: ${DB_USER_PRODUCTS}
       DB_PASSWORD: ${DB_PASSWORD_PRODUCTS}
       OTEL_SERVICE_NAME: products-service
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317 # Apunta al contenedor receptor por gRPC
+      MANAGEMENT_OTLP_TRACING_ENDPOINT: http://alloy:4317
     ports:
       - "8088:8080"
     networks:
@@ -93,7 +93,8 @@ services:
     ports:
       - "8089:8081"
     environment:
-      MANAGEMENT_OTLP_TRACING_ENDPOINT: http://alloy:4318/v1/traces
+      MANAGEMENT_OTLP_TRACING_ENDPOINT: http://alloy:4317
+      OTEL_SERVICE_NAME: users-service
       SPRING_APPLICATION_NAME: users-service
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE_ENV} # 🚀 ACTIVA EL PERFIL DE PRODUCCIÓN
       PRODUCTS_API_URL: ${PRODUCTS_BASE_URL}
@@ -102,7 +103,6 @@ services:
       DB_NAME: ${DB_NAME_USERS}
       DB_USER: ${DB_USER_USERS}
       DB_PASSWORD: ${DB_PASSWORD_USERS}
-      OTEL_SERVICE_NAME: users-service
     volumes:
       - vlm_users_logs:/app/logs  
     networks:
