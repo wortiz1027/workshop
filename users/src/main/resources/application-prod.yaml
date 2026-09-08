@@ -40,6 +40,26 @@ spring:
           use_sql_comments: false
           format_sql: false
 
+management:     
+  tracing:
+    sampling:
+      probability: 1.0
+    propagation:
+      type: W3C
+  otlp:
+    metrics:
+      export:
+        url: http://alloy:4318/v1/metrics
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: http://alloy:4318/v1/traces
+    logging:
+      export:
+        otlp:
+          endpoint: http://alloy:4318/v1/logs
+
 api:
   products:
     # Apunta al nombre del contenedor o DNS interno en la red de producción de Docker [1]

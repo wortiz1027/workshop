@@ -31,6 +31,18 @@ spring:
     hibernate:
       ddl-auto: validate
 
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+    propagation:
+      type: W3C
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: http://jaeger:4318/v1/traces
+
 api:
   products:
     url: ${PRODUCTS_API_URL:http://localhost:8080}/api/products

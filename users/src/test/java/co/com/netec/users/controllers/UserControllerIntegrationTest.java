@@ -16,8 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
 import org.springframework.test.web.servlet.client.RestTestClient;
 
-import org.springframework.web.client.support.RestClientAdapter;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
@@ -43,7 +41,6 @@ class UserControllerIntegrationTest {
 
         java.lang.reflect.Field field = org.springframework.util.ReflectionUtils
                 .findField(co.com.netec.users.services.UserService.class, "productRestClient");
-
     }
 
     @Test

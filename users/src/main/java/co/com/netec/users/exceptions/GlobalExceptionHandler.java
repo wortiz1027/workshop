@@ -10,14 +10,13 @@ import org.springframework.web.context.request.WebRequest;
 
 import co.com.netec.users.dtos.ErrorResponse;
 
-import java.time.LocalDateTime;
-
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(UserBusinessException.class)
     public ResponseEntity<ErrorResponse> handleUserBusinessException(UserBusinessException ex, WebRequest request) {
+        log.info("[message: execute custom user exception][ex: {}]", ex.getMessage());
         ErrorResponse error = new ErrorResponse(
                 java.time.LocalDateTime.now(),
                 HttpStatus.UNPROCESSABLE_CONTENT.value(),
