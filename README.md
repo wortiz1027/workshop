@@ -1,6 +1,6 @@
 # 🚀 Workshop: Arquitectura de Microservicios Distribuidos con Spring Boot 3.x & MySQL
 
-¡Bienvenido al repositorio central del Workshop! En este laboratorio práctico aprenderás a construir, integrar y desplegar un ecosistema distribuido compuesto por **dos aplicaciones backend e independientes**, cada una con su propia base de datos dedicada, aplicando patrones profesionales de comunicación HTTP, resiliencia defensiva, pruebas automatizadas y control de calidad.
+¡Bienvenido al repositorio central del Workshop! En este laboratorio práctico aprenderás a construir, integrar y desplegar un ecosistema distribuido compuesto por **dos aplicaciones backend e independientes**, cada una con su propia base de datos dedicada, aplicando patrones profesionales de comunicación HTTP, resiliencia defensiva, pruebas automatizadas, control de calidad y **observabilidad nativa de nivel corporativo (LGTM Stack + Grafana Alloy)**.
 
 ---
 
@@ -8,33 +8,58 @@
 
 El sistema implementa de forma estricta el patrón arquitectónico **Database-per-Microservice**. No existen llaves foráneas (`FOREIGN KEY`) cruzadas entre servidores MySQL independientes; la consistencia e integridad referencial de los datos distribuidos se gestiona en la capa de software a través de orquestación síncrona.
 
+El ecosistema está completamente instrumentado de forma nativa (sin agentes pesados de transformación de bytecode) para enviar métricas, logs y trazas distribuidas hacia **Grafana Alloy**, el cual actúa como el recolector y distribuidor único hacia el stack de almacenamiento de Grafana.
+
 ```mermaid
 graph TD
     subgraph Host ["💻 Entorno Maquina Real Host"]
-        UI[📱 Cliente HTTP / Resterm] -->|"Puerto Local 8080"| AppProducts
-        UI -->|"Puerto Local 8081"| AppUsers
+        UI[📱 Cliente HTTP / Resterm] -->|"Puerto Local 8081"| AppUsers
+        UI -->|"Puerto Local 8080"| AppProducts
+        GRAFANA_UI["📊 Grafana Dashboard <br> Puerto 3000"]
     end
 
     subgraph DockerBridge ["🌐 Red Docker: workshop_shared_network Bridge"]
         subgraph SubUsers ["👥 Microservicio Usuarios Puerto 8081"]
-            AppUsers[Spring Boot: users]
-            DBUsers[(🐬 MySQL: usersdb <br> Contenedor: mysql_server_users)]
-            AppUsers -->|localhost:3306 <br> network_mode| DBUsers
+            AppUsers[Spring Boot: users <br> Micrometer Tracing]
+            DBUsers[(🐬 MySQL: usersdb)]
+            AppUsers -->|localhost:3306| DBUsers
         end
 
         subgraph SubProducts ["📦 Microservicio Productos Puerto 8080"]
-            AppProducts[Spring Boot: products]
-            DBProducts[(🐬 MySQL: productsdb <br> Contenedor: mysql_server_products)]
-            AppProducts -->|localhost:3306 <br> network_mode| DBProducts
+            AppProducts[Spring Boot: products <br> Micrometer Tracing]
+            DBProducts[(🐬 MySQL: productsdb)]
+            AppProducts -->|localhost:3306| DBProducts
+        end
+
+        subgraph TelemetryStack ["🕵️‍♂️ Stack de Observabilidad Centralizado"]
+            ALLOY[⚙️ Grafana Alloy <br> OpenTelemetry Collector]
+            PROM[(🔥 Prometheus <br> Metrics)]
+            LOKI[(🪵 Grafana Loki <br> Logs)]
+            TEMPO[(⏱️ Grafana Tempo <br> Traces)]
         end
     end
 
-    %% Comunicación Distribuida - Envolver el texto de la flecha en comillas dobles para evitar conflictos con las llaves {}
+    %% Comunicación Distribuida de Negocio
     AppUsers -->|"1. RestClient GET /api/products/{id}"| AppProducts
 
-    %% Aplicar estilos utilizando exclusivamente los IDs técnicos planos (sin comillas ni espacios)
+    %% Flujos de Telemetría Unificados hacia Grafana Alloy (Agentless)
+    AppUsers -->|"Métricas, Logs y Trazas (OTLP/HTTP)"| ALLOY
+    AppProducts -->|"Métricas, Logs y Trazas (OTLP/HTTP)"| ALLOY
+
+    %% Distribución de Alloy hacia el Almacenamiento Core
+    ALLOY -->|Metrics| PROM
+    ALLOY -->|Logs| LOKI
+    ALLOY -->|Traces| TEMPO
+
+    %% Visualización
+    GRAFANA_UI -->|Query Data| PROM
+    GRAFANA_UI -->|Query Data| LOKI
+    GRAFANA_UI -->|Query Data| TEMPO
+
+    %% Aplicar estilos utilizando exclusivamente los IDs técnicos planos
     style SubUsers fill:#f9f,stroke:#333,stroke-width:2px
     style SubProducts fill:#bbf,stroke:#333,stroke-width:2px
+    style TelemetryStack fill:#eee,stroke:#ff6600,stroke-width:2px
 ```
 
 ### 📡 Lección Clave de Infraestructura: Redes en DevContainers
@@ -46,7 +71,18 @@ Durante el taller descubrimos que el uso de `network_mode: service:[db]` en los 
 
 ---
 
-## 🗄️ 2. Diseño y Modelo de Datos Decentralizado
+## 🕵️‍♂️ 2. Arquitectura de Observabilidad Avanzada (Grafana LGTM Stack)
+
+El ecosistema integra la especificación moderna de **Pruebas y Sistemas Observables** eludiendo el uso de agentes de alteración de bytecode en caliente, mitigando penalizaciones de CPU en pruebas de carga extremas de k6.
+
+- **Grafana Alloy (Collector):** Actúa como el recolector centralizado de telemetría dentro de la red virtual de Docker. Oye en un único punto los datos formateados bajo el estándar **OpenTelemetry (OTLP)**.
+- **Prometheus (Métricas):** Almacena las series temporales de consumo de memoria de la JVM, comportamiento de hilos de Tomcat y conteo de peticiones HTTP raspadas de forma eficiente por Alloy.
+- **Grafana Loki (Logs):** Centraliza las trazas de consola e hilos de ejecución de Spring Boot inyectados dinámicamente mediante el appender de Logback.
+- **Grafana Tempo (Trazas Distribuidas):** Reconstruye el viaje en cascada de una petición asignándole un identificador único global (`Trace ID`). Permite auditar visualmente los milisegundos exactos consumidos entre el orquestador de usuarios, la red de Docker y el catálogo de productos.
+
+---
+
+## 🗄️ 3. Diseño y Modelo de Datos Decentralizado
 
 ### Servidor de Productos (`productsdb`)
 
@@ -86,9 +122,9 @@ erDiagram
 
 ---
 
-## 🔄 3. Diagrama de Secuencia: Consulta Unificada por ID
+## 🔄 4. Diagrama de Secuencia: Consulta Unificada por ID
 
-Este flujo describe la optimización implementada para recuperar el reporte detallado del usuario sin necesidad de descargar todo el catálogo del inventario de forma masiva:
+Este flujo describe la orquestación distribuida que es auditada en tiempo real por el stack de telemetría de Grafana Tempo cuando se genera tráfico masivo:
 
 ```mermaid
 sequenceDiagram
@@ -101,11 +137,12 @@ sequenceDiagram
     participant PS as ProductService (products)
 
     Terminal->>UC: GET /api/users/usr-0001/report
+    Note over UC: Inicializa Trace ID Global
     UC->>US: getUserFullReport("usr-0001")
     US->>UR: findByIdWithProducts("usr-0001")
     Note over UR: Ejecuta consulta SQL optimizada<br/>usando LEFT JOIN FETCH
     UR-->>US: Entidad User con Colección de IDs
-    Note over US: Itera de forma resiliente por cada ID
+    Note over US: Propaga Trace ID en Cabeceras W3C
     US->>PC: GET /api/products/{id} (vía RestClient)
     PC->>PS: findById(id)
     PS-->>PC: ProductDTO
@@ -117,11 +154,11 @@ sequenceDiagram
 
 ---
 
-## ⚙️ 4. Guía de Configuración Global del Entorno
+## ⚙️ 5. Guía de Configuración Global del Entorno
 
 ### Prerrequisito: Crear la Red Compartida en tu Computadora Real
 
-Antes de inicializar los DevContainers en VS Code, debes crear de forma manual la red virtual en la terminal de tu sistema operativo principal para permitir la comunicación inter-servicio:
+Antes de inicializar los DevContainers en VS Code, debes crear de forma manual la red virtual en la terminal de tu sistema operativo principal para permitir la comunicación inter-servicio y el enganche de los contenedores de monitoreo:
 
 ```bash
 docker network create workshop_shared_network
@@ -129,32 +166,66 @@ docker network create workshop_shared_network
 
 ### Configuración del Entorno de Usuarios (`users/src/main/resources/application.yaml`)
 
+El archivo base centralizado implementa el patrón **Multi-Document** estructurado con tres guiones (`---`) para aislar los entornos locales del perfil de contenedores en producción sin corromper el classpath de compilación:
+
 ```yaml
 server:
   port: 8081
 spring:
   application:
-    name: users
-  datasource:
-    url: jdbc:mysql://localhost:3306/\${DB_NAME:usersdb}?useSSL=false&serverTimezone=UTC
-    username: \${DB_USER:workshop}
-    password: \${DB_PASSWORD:workshop2026}
+    name: users-service
+  profiles:
+    active: \${SPRING_PROFILES_ACTIVE:dev}
   jpa:
-    hibernate:
-      ddl-auto: validate
+    show-sql: true
     properties:
       hibernate:
         physical_naming_strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
 
-# 🚀 URL del Contenedor de la API Externa en la red común de Docker
+# 🕵️‍♂️ Configuración Nativa de Observabilidad para Grafana Alloy via OTLP
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    metrics:
+      export:
+        enabled: false
+    tracing:
+      endpoint: \${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
+
+---
+# 🚀 PERFIL DE DESARROLLO LOCAL (dev)
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:mysql://localhost:3306/\${DB_NAME:usersdb}?useSSL=false&serverTimezone=UTC
+    username: \${DB_USER:workshop}
+    password: \${DB_PASSWORD:workshop2026}
 api:
   products:
-    url: \${PRODUCTS_API_URL:http://mysql_server_products:8080/api/products}
+    url: http://localhost:8080/api/products
+
+---
+# 🐳 PERFIL DE CONTENEDORES EN PRODUCCIÓN (prod)
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: jdbc:mysql://localhost:3306/\${DB_NAME:usersdb}?useSSL=false&serverTimezone=UTC
+    username: \${DB_USER}
+    password: \${DB_PASSWORD}
+api:
+  products:
+    url: http://microservice_products_app:8080/api/products
 ```
 
 ---
 
-## 🧪 5. Control de Calidad y Pruebas con Resterm
+## 🧪 6. Control de Calidad y Pruebas con Resterm
 
 Hemos separado los archivos de pruebas funcionales interactivas para simular un ambiente de entrega continua real. Puedes ejecutarlos desde la consola integrada utilizando **Resterm**:
 
@@ -180,61 +251,24 @@ mvn clean verify
 
 ---
 
-## 📦 6. Compilación de Imágenes Docker (Entorno de Producción)
+## 📦 7. Compilación de Imágenes Docker (Entorno de Producción)
 
-Para empaquetar de forma segura y eficiente los microservicios utilizando los Dockerfiles multi-etapa independientes, ejecuta los siguientes comandos desde la terminal de tu máquina física (fuera de los DevContainers):
+Para empaquetar de forma segura y eficiente los microservicios utilizando los Dockerfiles multi-etapa basados en la extracción de descompresión nativa (`jar -xf`), ejecuta los siguientes comandos desde la terminal de tu máquina física (fuera de los DevContainers):
 
 ```bash
 # 1. Compilar la imagen del Microservicio de Productos
 cd ./products
 docker build \
   --no-cache \
-  --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+  --build-arg BUILD_DATE=\$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
   --build-arg BUILD_VERSION="1.0.0" \
-  --build-arg BUILD_REVISION=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown") \
-  -t workshop/products-service:latest .
+  -t products-service:latest .
 
 # 2. Compilar la imagen del Microservicio de Usuarios
 cd ../users
 docker build \
   --no-cache \
-  --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+  --build-arg BUILD_DATE=\$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
   --build-arg BUILD_VERSION="1.0.0" \
-  --build-arg BUILD_REVISION=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown") \
-  -t workshop/users-service:latest .
+  -t users-service:latest .
 ```
-
----
-
-## 🐳 7. Orquestación y Despliegue con Docker Compose
-
-Una vez compiladas las imágenes locales, regresa a la raíz de tu espacio de trabajo global para levantar y administrar la infraestructura completa del ecosistema distribuido (las 2 aplicaciones ejecutándose en paralelo junto con sus 2 servidores MySQL dedicados).
-
-### Comandos de Operación:
-
-- **Levantar todos los servicios en segundo plano (Detached Mode):**
-
-  ```bash
-  docker compose -f docker-compose.production.yaml up -d
-  ```
-
-- **Verificar el estado de salud y mapeo de puertos de los contenedores:**
-
-  ```bash
-  docker compose -f docker-compose.production.yaml ps
-  ```
-
-- **Inspeccionar los logs en tiempo real (Útil para auditar la inyección de la variable PRODUCTS_API_URL):**
-
-  ```bash
-  # Ver actividad general
-  docker compose -f docker-compose.production.yaml logs -f
-
-  # Ver actividad exclusiva del microservicio de usuarios
-  docker logs -f microservice_users_app
-  ```
-
-- **Apagar la arquitectura completa y eliminar los volúmenes persistentes de datos:**
-  ```bash
-  docker compose -f docker-compose.production.yaml down -v
-  ```
