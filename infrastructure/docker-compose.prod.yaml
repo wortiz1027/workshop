@@ -64,6 +64,7 @@ services:
       - "9090:9090"
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.enable-remote-write-receiver'
     volumes:
       - ./configs/prometheus/prometheus.prod.yml:/etc/prometheus/prometheus.yml
     networks:

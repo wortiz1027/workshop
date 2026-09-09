@@ -44,9 +44,9 @@ services:
       OTEL_SERVICE_NAME: products-service
       OTEL_TRACES_EXPORTER: otlp
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://alloy:4318/v1/traces
-      OTEL_METRICS_EXPORTER: none
-      OTEL_LOGS_EXPORTER: none
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318/v1/traces
+      #OTEL_METRICS_EXPORTER: none
+      #OTEL_LOGS_EXPORTER: none
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
       SPRING_APPLICATION_NAME: products-service
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE_ENV}
       DB_HOSTNAME: ${DB_PRODUCTS_HOSTNAME}
@@ -54,6 +54,8 @@ services:
       DB_NAME: ${DB_NAME_PRODUCTS}
       DB_USER: ${DB_USER_PRODUCTS}
       DB_PASSWORD: ${DB_PASSWORD_PRODUCTS}
+    volumes:
+      - vlm_products_logs:/app/logs        
     ports:
       - "8088:8080"
     networks:
@@ -97,14 +99,13 @@ services:
     restart: always
     ports:
       - "8089:8081"
-    environment:
-      
+    environment:      
       OTEL_SERVICE_NAME: users-service
       OTEL_TRACES_EXPORTER: otlp
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://alloy:4318/v1/traces
-      OTEL_METRICS_EXPORTER: none
-      OTEL_LOGS_EXPORTER: none
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318/v1/traces
+      #OTEL_METRICS_EXPORTER: none
+      #OTEL_LOGS_EXPORTER: none
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
       SPRING_APPLICATION_NAME: users-service
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE_ENV} # 🚀 ACTIVA EL PERFIL DE PRODUCCIÓN
       PRODUCTS_API_URL: ${PRODUCTS_BASE_URL}
@@ -136,4 +137,5 @@ volumes:
   production_mysql_data_users:
   vlm_users_logs:
     external: true
-      
+  vlm_products_logs:      
+    external: true

@@ -4,7 +4,7 @@ logging {
 }
 
 // ==========================================
-// SECCIÓN DE LOGS (LOKI) - Tu config actual
+// SECCIÓN DE LOGS (LOKI) - Tu config intacta
 // ==========================================
 
 // 1. Monitorear de forma dinámica todas las subcarpetas de logs
@@ -74,11 +74,11 @@ loki.write "loki_backend" {
 }
 
 // ==========================================
-// 🚀 NUEVA SECCIÓN DE TRAZAS (TEMPO)
+// 🚀 SECCIÓN DE TELEMETRÍA UNIFICADA (OTLP)
 // ==========================================
 
-// 5. RECEPTOR: Escucha las trazas OTLP que envía tu Spring Boot
-otelcol.receiver.otlp "spring_boot_traces" {
+// 5. RECEPTOR MODIFICADO: Ahora escucha tanto Trazas como Métricas de Spring Boot
+otelcol.receiver.otlp "spring_boot_telemetry" {
   grpc {
     endpoint = "0.0.0.0:4317"
   }
@@ -86,18 +86,31 @@ otelcol.receiver.otlp "spring_boot_traces" {
     endpoint = "0.0.0.0:4318"
   }
 
-  // Envía lo recibido al componente exportador de Tempo que está abajo
   output {
-    traces = [otelcol.exporter.otlp.send_to_tempo.input]
+    traces  = [otelcol.exporter.otlp.send_to_tempo.input]
+    // 🌟 NUEVO: Envía las métricas recibidas al convertidor de Prometheus
+    metrics = [otelcol.exporter.prometheus.send_to_prometheus.input]
   }
 }
 
-// 6. EXPORTADOR: Envía las trazas directamente a Grafana Tempo
+// 6. EXPORTADOR A TEMPO: Envía las trazas directamente a Grafana Tempo
 otelcol.exporter.otlp "send_to_tempo" {
   client {
     endpoint = "tempo:4317"
     tls {
       insecure = true
     }
+  }
+}
+
+// 7. 🌟 NUEVO CONVERTIDOR: Transforma el formato OTLP de Java en métricas de Prometheus
+otelcol.exporter.prometheus "send_to_prometheus" {
+  forward_to = [prometheus.remote_write.prometheus_backend.receiver]
+}
+
+// 8. 🌟 NUEVO EXPORTADOR A PROMETHEUS: Escribe los datos en tu contenedor de Prometheus
+prometheus.remote_write "prometheus_backend" {
+  endpoint {
+    url = "http://prometheus:9090/api/v1/write"
   }
 }

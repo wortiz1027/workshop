@@ -41,15 +41,14 @@ spring:
           format_sql: false
 
 management:     
-  tracing:
-    sampling:
-      probability: 1.0
-    propagation:
-      type: W3C
+  # 1. Configuración de Métricas (Mapeado bajo Micrometer OTLP)
   otlp:
     metrics:
       export:
         url: http://alloy:4318/v1/metrics
+        step: 10s
+
+  # 2. Configuración de Trazas y Logs (Mapeado bajo el Starter de OpenTelemetry)
   opentelemetry:
     tracing:
       export:
@@ -59,6 +58,14 @@ management:
       export:
         otlp:
           endpoint: http://alloy:4318/v1/logs
+
+  # 3. Configuración del Motor de Rastreo General
+  tracing:
+    sampling:
+      probability: 1.0
+    propagation:
+      consume: [W3C]
+      produce: [W3C]
 
 api:
   products:

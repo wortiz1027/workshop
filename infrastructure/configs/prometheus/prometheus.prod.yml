@@ -14,7 +14,7 @@ scrape_configs:
     static_configs:
       - targets: ['prod-app-products:8080']
         labels:
-          application: 'srv-products'
+          application: 'products-service'
 
   - job_name: 'srv-users'
     metrics_path: '/actuator/prometheus'
@@ -22,4 +22,4 @@ scrape_configs:
     static_configs:
       - targets: ['prod-app-users:8081']
         labels:
-          application: 'srv-users'          
+          application: 'users-service'          

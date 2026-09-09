@@ -35,7 +35,8 @@ management:
     sampling:
       probability: 1.0
     propagation:
-      type: W3C
+      consume: [W3C]
+      produce: [W3C]
   otlp:
     metrics:
       export:
@@ -48,4 +49,4 @@ management:
     logging:
       export:
         otlp:
-          endpoint: http://alloy:4318/v1/logs            
+          endpoint: http://alloy:4318/v1/logs
