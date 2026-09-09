@@ -1,0 +1,53 @@
+{
+	"name": "🍃 Eureka Server :: Boot Dev environment🍃",
+	"service": "eureka-server",
+	"dockerComposeFile": "docker-compose.yaml",
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+	"features": {
+		"ghcr.io/devcontainers/features/java:1": {
+			"version": "none",
+			"installMaven": "true",
+			"installGradle": "false"
+		}
+	},
+	// 🐘 Eureka server 8761
+	"forwardPorts": [
+		8761
+	],
+	"portsAttributes": {
+		"8761": {
+			"label": "🚀 Spring Boot Eureka Server"
+		}
+	},
+	// ✅ Wait for DB to be ready before running commands
+	//"postCreateCommand": "echo '🐘 MySQL ready at db:3306 | 🗄️ DB: products_db | 👤 User: workshop'",
+	//"postStartCommand": "chmod +x .devcontainer/set-envs.sh && (grep -qF 'set-envs.sh' ~/.bashrc || echo 'source /workspaces/${localWorkspaceFolderBasename}/.devcontainer/set-envs.sh' >> ~/.bashrc) && (grep -qF 'set-envs.sh' ~/.zshrc || echo 'source /workspaces/${localWorkspaceFolderBasename}/.devcontainer/set-envs.sh' >> ~/.zshrc)",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"vscjava.vscode-java-pack",
+				"vmware.vscode-spring-boot",
+				"mtxr.sqltools",
+				"mtxr.sqltools-driver-pg",
+				"vmware.vscode-boot-dev-pack",
+				"bierner.markdown-mermaid",
+				"MermaidChart.vscode-mermaid-chart",
+				"ms-vscode.live-server"
+			],
+			"settings": {
+				"workbench.iconTheme": "symbols",
+				"workbench.colorTheme": "Light+",
+				"java.compile.nullAnalysis.mode": "automatic",
+				"java.jdt.ls.java.home": "/usr/lib/jvm/msopenjdk-current",
+				"java.configuration.runtimes": [
+					{
+						"name": "JavaSE-21",
+						"path": "/usr/lib/jvm/msopenjdk-current",
+						"default": true
+					}
+				],
+				"java.import.gradle.java.home": "/usr/lib/jvm/msopenjdk-current"
+			}
+		}
+	}
+}

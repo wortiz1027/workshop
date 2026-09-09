@@ -1,0 +1,15 @@
+eureka:
+  instance:
+    hostname: localhost
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+    service-url:
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+      
+  # 🚀 CONTROL DE EMERGENCIA SRE (Solo para entornos locales/desarrollo):
+  server:
+    # 1. Apaga por completo el escudo de autoconservación
+    enable-self-preservation: false
+    # 2. Fuerza a Eureka a revisar la lista de muertos cada 5 segundos (por defecto son 60s)
+    eviction-interval-timer-in-ms: 5000

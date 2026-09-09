@@ -1,0 +1,48 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:mysql://${DB_HOSTNAME:localhost}:${DB_PORT:3306}/${DB_NAME:usersdb}?useSSL=false&serverTimezone=UTC
+    username: ${DB_USER:workshop}
+    password: ${DB_PASSWORD:workshop2026}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    
+    # 🔧 CONFIGURACIÓN HIKARI PARA DESARROLLO
+    hikari:
+      pool-name: users-dev-hikari-pool
+      # Empezamos con pocas conexiones para ahorrar memoria en local
+      minimum-idle: 2
+      maximum-pool-size: 5
+      # Tiempo máximo que espera el código por una conexión antes de dar error (30 segundos)
+      connection-timeout: 30000
+      # Cuánto tiempo puede estar una conexión ociosa en el pool antes de cerrarse (10 minutos)
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+    # Captura del texto del SQL y parámetros reales para telemetría
+    proxy:
+      logging: info
+      query:
+        enable-logging: true
+        log-entry-creator: single-line
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+    propagation:
+      type: W3C
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: http://jaeger:4318/v1/traces
+
+api:
+  products:
+    url: ${PRODUCTS_API_URL:http://localhost:8080}/api/products

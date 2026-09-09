@@ -48,7 +48,8 @@
     </scm>
 	<properties>
 		<java.version>21</java.version>
-		<logstash-logback-encoder.version>8.0</logstash-logback-encoder.version>		
+		<logstash-logback-encoder.version>8.0</logstash-logback-encoder.version>
+		<spring-cloud.version>2025.1.3</spring-cloud.version>
 	</properties>
 	<profiles>
 		<!-- 🚀 Perfil 1: Desarrollo Local (Activado por Defecto) -->
@@ -68,6 +69,7 @@
 			<properties>
 				<spring.profiles.active>prod</spring.profiles.active>
 				<logstash-logback-encoder.version>8.0</logstash-logback-encoder.version>
+				<spring-cloud.version>2025.1.3</spring-cloud.version>
 			</properties>
 		</profile>
 	</profiles>
@@ -87,6 +89,14 @@
 				<groupId>io.opentelemetry.instrumentation</groupId>
 				<artifactId>opentelemetry-instrumentation-bom</artifactId>
 				<version>2.10.0</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+
+			<dependency>
+				<groupId>org.springframework.cloud</groupId>
+				<artifactId>spring-cloud-dependencies</artifactId>
+				<version>${spring-cloud.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -152,6 +162,24 @@
 			<groupId>net.logstash.logback</groupId>
 			<artifactId>logstash-logback-encoder</artifactId>
 			<version>${logstash-logback-encoder.version}</version>
+		</dependency>
+
+		<!-- 🚀 REQUERIDO: Habilita el soporte prioritario para archivos bootstrap.yaml en Spring Boot 3.x -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-bootstrap</artifactId>
+		</dependency>
+
+		<!-- 🔌 Cliente de Configuración Centralizada -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-config-client</artifactId>
+		</dependency>
+
+		<!-- 📡 Cliente de Descubrimiento Eureka -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
 		</dependency>
 
 		<!-- Dependencias de Test -->

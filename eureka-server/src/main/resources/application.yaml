@@ -1,0 +1,11 @@
+server:
+  port: 8761 # 🚀 Puerto estándar oficial de Eureka Server
+
+spring:
+  application:
+    name: eureka-server
+  config:
+    # 🔌 Le indica a Eureka que busque sus propiedades reales en el Config Server
+    import: "optional:configserver:http://config-server:9999"
+  profiles:
+    active: dev # Perfil por defecto para pruebas locales

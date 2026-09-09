@@ -1,0 +1,21 @@
+# ⚙️ Resterm Config Server Workspace Configuration
+@baseUrl = http://localhost:9999
+
+###
+# @name CheckUsersProfileDev
+# 1. Obtener el listado de configuraciones para el perfil 'dev' de users
+GET {{baseUrl}}/users/dev
+Accept: application/json
+
+# @script test
+> {%
+client.test("Status es 200 y array no vacio", function () {
+  tests.assert(response.statusCode === 200, "El codigo de respuesta debe ser 200");
+  
+  var configs = JSON.parse(response.body);
+  
+  tests.assert(Array.isArray(configs.profiles), "La respuesta debe ser un arreglo de perfiles");
+  tests.assert(configs.profiles.length > 0, "El arreglo no debe estar vacio");
+  tests.assert(configs.profiles[0] !== null, "El primer perfil debe tener un ID");
+});
+%}

@@ -1,0 +1,14 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: products # Identificador de la aplicacion
+  cloud:
+    config:
+      # 🔌 Fuerza la conexion al servidor de configuracion en la fase bootstrap
+      uri: http://config-server:9999
+      # 🚀 INDICA EL NOMBRE DE LA SUBCARPETA: Le dice al servidor que busque en shared/products/
+      name: products 
+  profiles:
+    active: dev # Perfil por defecto para desarrollo local

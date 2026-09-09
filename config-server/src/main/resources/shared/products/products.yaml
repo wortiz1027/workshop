@@ -1,5 +1,6 @@
 server:
   port: 8080
+  
 spring:
   application:
     name: products
@@ -35,3 +36,13 @@ management:
             requests: true
     tags:
       application: ${spring.application.name}
+
+eureka:
+  client:
+    # 🚨 ACCIÓN CRÍTICA: Cambia el puerto al valor real de tu Eureka (9761)
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
+  instance:
+    # Latidos rápidos para el laboratorio local
+    lease-renewal-interval-in-seconds: 5
+    lease-expiration-duration-in-seconds: 10      

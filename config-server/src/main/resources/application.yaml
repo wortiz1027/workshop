@@ -1,0 +1,14 @@
+server:
+  port: 9999
+
+spring:
+  application:
+    name: config-server
+  profiles:
+    active: native # 🚀 Activa el modo de lectura del sistema de archivos local
+  cloud:
+    config:
+      server:
+        native:
+          # Busca los archivos .yaml de los microservicios en esta ruta del Classpath
+          search-locations: classpath:/shared/{application}
