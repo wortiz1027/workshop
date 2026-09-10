@@ -37,4 +37,4 @@ management:
     tracing:
       export:
         otlp:
-          endpoint: http://jaeger:4318/v1/traces
+          endpoint: http://${JAEGER_HOSTNAME:jaeger}:${JAEGER_PORT:4318}/v1/traces

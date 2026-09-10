@@ -13,25 +13,30 @@ El ecosistema está completamente instrumentado de forma nativa (sin agentes pes
 ```mermaid
 graph TD
     subgraph Host ["💻 Entorno Maquina Real Host"]
-        UI[📱 Cliente HTTP / Resterm] -->|"Puerto Local 8081"| AppUsers
-        UI -->|"Puerto Local 8080"| AppProducts
+        UI[📱 Cliente HTTP / Resterm] -->|"1. Entrada Publica Puerto 8000"| AppGateway
         GRAFANA_UI["📊 Grafana Dashboard <br> Puerto 3000"]
     end
 
-    subgraph DockerBridge ["🌐 Red Docker: workshop_shared_network Bridge"]
+    subgraph DockerBridge ["🐳 Red Docker: workshop_shared_network Bridge"]
+        subgraph SpringCloud ["⚙️ Infraestructura 🍃 Spring Cloud (Contenedores)"]
+            ConfigServer[☁️ Config Server <br> Puerto 9999]
+            EurekaServer[📡 Eureka Server <br> Puerto 8761]
+            AppGateway[👑 API Gateway WebMVC <br> Puerto 8000]
+        end
+
         subgraph SubUsers ["👥 Microservicio Usuarios Puerto 8081"]
-            AppUsers[Spring Boot: users <br> Micrometer Tracing]
+            AppUsers[🍃 Spring Boot: users <br> Micrometer Tracing]
             DBUsers[(🐬 MySQL: usersdb)]
             AppUsers -->|localhost:3306| DBUsers
         end
 
         subgraph SubProducts ["📦 Microservicio Productos Puerto 8080"]
-            AppProducts[Spring Boot: products <br> Micrometer Tracing]
+            AppProducts[🍃 Spring Boot: products <br> Micrometer Tracing]
             DBProducts[(🐬 MySQL: productsdb)]
             AppProducts -->|localhost:3306| DBProducts
         end
 
-        subgraph TelemetryStack ["🕵️‍♂️ Stack de Observabilidad Centralizado"]
+        subgraph TelemetryStack ["🕵️‍♂️ Stack de Observabilidad Centralizado LGTM"]
             ALLOY[⚙️ Grafana Alloy <br> OpenTelemetry Collector]
             PROM[(🔥 Prometheus <br> Metrics)]
             LOKI[(🪵 Grafana Loki <br> Logs)]
@@ -39,12 +44,27 @@ graph TD
         end
     end
 
-    %% Comunicación Distribuida de Negocio
-    AppUsers -->|"1. RestClient GET /api/products/{id}"| AppProducts
+    %% Ciclo de Descarga de Propiedades Centralizadas
+    AppGateway -.->|"2. Descarga YAML"| ConfigServer
+    AppUsers -.->|"Descarga YAML"| ConfigServer
+    AppProducts -.->|"Descarga YAML"| ConfigServer
 
-    %% Flujos de Telemetría Unificados hacia Grafana Alloy (Agentless)
-    AppUsers -->|"Métricas, Logs y Trazas (OTLP/HTTP)"| ALLOY
-    AppProducts -->|"Métricas, Logs y Trazas (OTLP/HTTP)"| ALLOY
+    %% Ciclo de Descubrimiento de Servicios Dinámico
+    AppGateway -->|"3. Consulta Rutas"| EurekaServer
+    AppUsers -->|"Registra Instancia: USERS"| EurekaServer
+    AppProducts -->|"Registra Instancia: PRODUCTS"| EurekaServer
+
+    %% Enrutamiento Interno del API Gateway
+    AppGateway -->|"4. Enruta lb://service-products"| AppProducts
+    AppGateway -->|"4. Enruta lb://service-users"| AppUsers
+
+    %% Comunicación de Negocio Inter-Servicio
+    AppUsers -->|"Orquestación HTTP Síncrona"| AppProducts
+
+    %% Flujos de Telemetría Unificados hacia Grafana Alloy
+    AppGateway -->|"OTLP/HTTP"| ALLOY
+    AppUsers -->|"OTLP/HTTP"| ALLOY
+    AppProducts -->|"OTLP/HTTP"| ALLOY
 
     %% Distribución de Alloy hacia el Almacenamiento Core
     ALLOY -->|Metrics| PROM
@@ -59,6 +79,7 @@ graph TD
     %% Aplicar estilos utilizando exclusivamente los IDs técnicos planos
     style SubUsers fill:#f9f,stroke:#333,stroke-width:2px
     style SubProducts fill:#bbf,stroke:#333,stroke-width:2px
+    style SpringCloud fill:#cef,stroke:#048,stroke-width:2px
     style TelemetryStack fill:#eee,stroke:#ff6600,stroke-width:2px
 ```
 
@@ -262,7 +283,8 @@ docker build \
   --no-cache \
   --build-arg BUILD_DATE=\$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
   --build-arg BUILD_VERSION="1.0.0" \
-  -t products-service:latest .
+    --build-arg BUILD_REVISION=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown") \
+  -t workshop/products-service:latest .
 
 # 2. Compilar la imagen del Microservicio de Usuarios
 cd ../users
@@ -270,5 +292,30 @@ docker build \
   --no-cache \
   --build-arg BUILD_DATE=\$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
   --build-arg BUILD_VERSION="1.0.0" \
-  -t users-service:latest .
+  --build-arg BUILD_REVISION=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown") \
+  -t workshop/users-service:latest .
+
+cd ../config-server
+docker build \
+  --no-cache \
+  --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+  --build-arg BUILD_VERSION="1.0.0" \
+  --build-arg BUILD_REVISION=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown") \
+  -t workshop/config-server:latest .
+
+cd ../eureka-server
+docker build \
+  --no-cache \
+  --build-arg BUILD_DATE=\$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+  --build-arg BUILD_VERSION="1.0.0" \
+  --build-arg BUILD_REVISION=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown") \
+  -t workshop/eureka-server:latest .
+
+cd ../api-gateway
+docker build \
+  --no-cache \
+  --build-arg BUILD_DATE=\$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+  --build-arg BUILD_VERSION="1.0.0" \
+  --build-arg BUILD_REVISION=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown") \
+  -t workshop/api-gateway:latest .
 ```

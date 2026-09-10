@@ -42,22 +42,22 @@ spring:
 
 management:     
   # 1. Configuración de Métricas (Mapeado bajo Micrometer OTLP)
-  otlp:
-    metrics:
-      export:
-        url: http://alloy:4318/v1/metrics
-        step: 10s
+  #otlp:
+  #  metrics:
+  #    export:
+  #      url: http://alloy:4318/v1/metrics
+  #      step: 10s
 
   # 2. Configuración de Trazas y Logs (Mapeado bajo el Starter de OpenTelemetry)
   opentelemetry:
     tracing:
       export:
         otlp:
-          endpoint: http://alloy:4318/v1/traces
-    logging:
-      export:
-        otlp:
-          endpoint: http://alloy:4318/v1/logs
+          endpoint: http://${JAEGER_HOSTNAME:jaeger}:${JAEGER_PORT:4318}/v1/traces
+   # logging:
+   #   export:
+   #     otlp:
+   #       endpoint: http://alloy:4318/v1/logs
 
   # 3. Configuración del Motor de Rastreo General
   tracing:

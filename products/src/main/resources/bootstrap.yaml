@@ -1,13 +1,10 @@
-server:
-  port: 8080
-
 spring:
   application:
     name: products # Identificador de la aplicacion
   cloud:
     config:
       # 🔌 Fuerza la conexion al servidor de configuracion en la fase bootstrap
-      uri: http://config-server:9999
+      uri: http://${CONFIG_SERVER_HOSTNAME:config-server}:${CONFIG_SERVER_PORT:9999}
       # 🚀 INDICA EL NOMBRE DE LA SUBCARPETA: Le dice al servidor que busque en shared/products/
       name: products 
   profiles:

@@ -41,7 +41,7 @@ eureka:
   client:
     # 🚨 ACCIÓN CRÍTICA: Cambia el puerto al valor real de tu Eureka (9761)
     service-url:
-      defaultZone: http://eureka-server:8761/eureka/
+      defaultZone: http://${EUREKA_SERVER_HOSTNAME:eureka-server}:${EUREKA_SERVER_PORT:8761}/eureka/
   instance:
     # Latidos rápidos para el laboratorio local
     lease-renewal-interval-in-seconds: 5

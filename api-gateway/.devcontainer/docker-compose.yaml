@@ -1,0 +1,13 @@
+services:
+  # ☕ Java Development Container
+  api-gateway:
+    image: mcr.microsoft.com/devcontainers/java:1-21-bullseye
+    volumes:
+      - ../..:/workspaces:cached
+    command: sleep infinity
+    networks:
+      - ntw_development
+      
+networks:
+  ntw_development:
+    external: true

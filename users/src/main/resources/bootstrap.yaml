@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: users # Identificador de la aplicacion
+  cloud:
+    config:
+      # 🔌 Fuerza la conexion al servidor de configuracion en la fase bootstrap
+      uri: http://${CONFIG_SERVER_HOSTNAME:config-server}:${CONFIG_SERVER_PORT:9999}
+      # 🚀 INDICA EL NOMBRE DE LA SUBCARPETA: Le dice al servidor que busque en shared/users/
+      name: users 
+  profiles:
+    active: dev # Perfil por defecto para desarrollo local

@@ -37,16 +37,16 @@ management:
     propagation:
       consume: [W3C]
       produce: [W3C]
-  otlp:
-    metrics:
-      export:
-        url: http://alloy:4318/v1/metrics
+  #otlp:
+  #  metrics:
+  #    export:
+  #      url: http://alloy:4318/v1/metrics
   opentelemetry:
     tracing:
       export:
         otlp:
-          endpoint: http://alloy:4318/v1/traces
-    logging:
-      export:
-        otlp:
-          endpoint: http://alloy:4318/v1/logs
+          endpoint: http://${JAEGER_HOSTNAME:jaeger}:${JAEGER_PORT:4318}/v1/traces
+  #  logging:
+  #    export:
+  #      otlp:
+  #        endpoint: http://alloy:4318/v1/logs

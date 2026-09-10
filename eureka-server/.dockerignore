@@ -1,0 +1,43 @@
+# =========================================================================
+# 🚫 WORKSPACE DOCKER IGNORE FILE
+# Evita enviar archivos basura o locales al contexto de compilación de Docker
+# =========================================================================
+
+# ☕ Compilados Locales y Artefactos de Java
+**/target/
+**/build/
+**/*.jar
+**/*.war
+**/*.class
+
+# 🔧 Entornos de Desarrollo Especializados (IDEs & DevContainers)
+.devcontainer/
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+.classpath
+.project
+.settings/
+.nbproject/
+
+# 🔐 Credenciales y Configuración de Secretos (¡Seguridad Crítica!)
+.env
+.env.example
+**/*.log
+**/logs/
+
+# 📦 Suites de Pruebas Cruzadas e Históricos de Calidad
+**/*.http
+**/target/site/jacoco/
+.jacoco/
+.gradle/
+
+# 🗺️ Sistema Operativo y Control de Versiones
+.git/
+.gitignore
+.gitattributes
+*.md
+.DS_Store
+Thumbs.db

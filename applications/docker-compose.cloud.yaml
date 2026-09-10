@@ -1,0 +1,200 @@
+services:
+
+  # =======================================================================
+  # ☁️ MICROSERVICIO: CONFIG SERVER (Cerebro de Propiedades)
+  # =======================================================================
+  config-server:
+    image: workshop/config-server:latest
+    container_name: cloud-config-server
+    restart: always
+    ports:
+      - "9990:9999" # Expuesto para auditoría o refresco de propiedades
+    environment:
+      CONFIG_SERVER_PORT: ${CLOUD_CONFIG_SERVER_PORT}
+      EUREKA_SERVER_PORT: ${CLOUD_EUREKA_SERVER_PORT}
+      EUREKA_SERVER_HOSTNAME: ${CLOUD_EUREKA_SERVER_HOSTNAME}
+      JAEGER_HOSTNAME: ${CLOUD_JAEGER_HOSTNAME}
+      JAEGER_PORT: ${CLOUD_JAEGER_PORT}
+    networks:
+      - ntw_cloud
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9999/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =======================================================================
+  # 📡 MICROSERVICIO: EUREKA SERVER (Directorio Telefónico)
+  # =======================================================================
+  eureka-server:
+    image: workshop/eureka-server:latest
+    container_name: cloud-eureka-server
+    restart: always
+    ports:
+      - "8762:8761" # Expuesto para ver el Dashboard de control visual en tu navegador
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE_ENV}
+      CONFIG_SERVER_HOSTNAME: ${CLOUD_CONFIG_SERVER_HOSTNAME}
+      CONFIG_SERVER_PORT: ${CLOUD_CONFIG_SERVER_PORT}
+      #- OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4318/v1/traces
+    networks:
+      - ntw_cloud
+    depends_on:
+      config-server:
+        condition: service_healthy # Espera a que el Config Server responda HTTP antes de iniciar
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8761/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =======================================================================
+  # 👑 MICROSERVICIO: API GATEWAY (Única Puerta de Entrada Perimetral)
+  # =======================================================================
+  api-gateway:
+    image: workshop/api-gateway:latest
+    container_name: cloud-api-gateway
+    restart: always
+    ports:
+      - "8000:8000" # 🎯 EL ÚNICO PUERTO DE ENTRADA PÚBLICO DEL WORKSHOP
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE_ENV}
+      CONFIG_SERVER_HOSTNAME: ${CLOUD_CONFIG_SERVER_HOSTNAME}
+      CONFIG_SERVER_PORT: ${CLOUD_CONFIG_SERVER_PORT}
+    networks:
+      - ntw_cloud
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+
+   # =======================================================================
+  # 📦 COMPONENTE 1: DOMINIO DE PRODUCTOS (API + BASE DE DATOS)
+  # =======================================================================
+
+  # 🐬 Servidor MySQL dedicado a Productos
+  db_products:
+    image: mysql:9.0
+    container_name: cloud_db_srv_products
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_CLOUD_ROOT_PASSWORD_PRODUCTS}
+      MYSQL_DATABASE: ${DB_CLOUD_NAME_PRODUCTS}
+      MYSQL_USER: ${DB_CLOUD_USER_PRODUCTS}
+      MYSQL_PASSWORD: ${DB_CLOUD_PASSWORD_PRODUCTS}
+    ports:
+      - "3310:3306"
+    command: --lower_case_table_names=1
+    volumes:
+      - cloud_mysql_data_products:/var/lib/mysql
+      - ../products/.devcontainer/mysql-products-schema-v1.sql:/docker-entrypoint-initdb.d/schema.sql
+    networks:
+      - ntw_cloud
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_CLOUD_USER_PRODUCTS:-products}", "-p${DB_CLOUD_PASSWORD_PRODUCTS:-products2026}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 🚀 Aplicación Java de Productos (Imagen compila con su Dockerfile)
+  products-app:
+    image: workshop/products-service:latest
+    container_name: cloud-app-products
+    restart: always
+    environment:
+      CONFIG_SERVER_HOSTNAME: ${CLOUD_CONFIG_SERVER_HOSTNAME}
+      CONFIG_SERVER_PORT: ${CLOUD_CONFIG_SERVER_PORT}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE_ENV}
+      DB_HOSTNAME: ${DB_CLOUD_PRODUCTS_HOSTNAME}
+      DB_PORT: ${DB_CLOUD_PRODUCTS_PORT}
+      DB_NAME: ${DB_CLOUD_NAME_PRODUCTS}
+      DB_USER: ${DB_CLOUD_USER_PRODUCTS}
+      DB_PASSWORD: ${DB_CLOUD_PASSWORD_PRODUCTS}
+    ports:
+      - "8080"
+    networks:
+      - ntw_cloud
+    depends_on:
+      db_products:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'      # Capamos al 50% de un núcleo
+          memory: 256M      # Restringimos a 256MB de RAM
+        reservations:
+          memory: 128M
+  # =======================================================================
+  # 👥 COMPONENTE 2: DOMINIO DE USUARIOS (API + BASE DE DATOS)
+  # =======================================================================
+
+  # 🐬 Servidor MySQL dedicado a Usuarios
+  db_users:
+    image: mysql:9.0
+    container_name: cloud_db_srv_users
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_CLOUD_ROOT_PASSWORD_USERS}
+      MYSQL_DATABASE: ${DB_CLOUD_NAME_USERS}
+      MYSQL_USER: ${DB_CLOUD_USER_USERS}
+      MYSQL_PASSWORD: ${DB_CLOUD_PASSWORD_USERS}
+    ports:
+      - "3311:3306"
+    volumes:
+      - cloud_mysql_data_users:/var/lib/mysql
+      - ../users/.devcontainer/mysql-users-schema-v1.sql:/docker-entrypoint-initdb.d/schema.sql
+    command: --lower_case_table_names=1
+    networks:
+      - ntw_cloud
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_CLOUD_USER_USERS}", "-p${DB_CLOUD_PASSWORD_USERS}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 🚀 Aplicación Java de Usuarios (Imagen compila con su Dockerfile)
+  users-app:
+    image: workshop/users-service:latest
+    container_name: cloud-app-users
+    restart: always
+    ports:
+      - "8081"
+    environment:
+      CONFIG_SERVER_HOSTNAME: ${CLOUD_CONFIG_SERVER_HOSTNAME}
+      CONFIG_SERVER_PORT: ${CLOUD_CONFIG_SERVER_PORT}    
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE_ENV} # 🚀 ACTIVA EL PERFIL DE PRODUCCIÓN
+      PRODUCTS_API_URL: ${CLOUD_PRODUCTS_BASE_URL}
+      DB_HOSTNAME: ${DB_CLOUD_USERS_HOSTNAME}
+      DB_PORT: ${DB_CLOUD_USERS_PORT}
+      DB_NAME: ${DB_CLOUD_NAME_USERS}
+      DB_USER: ${DB_CLOUD_USER_USERS}
+      DB_PASSWORD: ${DB_CLOUD_PASSWORD_USERS}
+    networks:
+      - ntw_cloud
+    depends_on:
+      db_users:
+        condition: service_healthy
+      products-app:
+        condition: service_started
+      eureka-server:
+        condition: service_healthy        
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'      # Capamos al 50% de un núcleo
+          memory: 256M      # Restringimos a 256MB de RAM
+        reservations:
+          memory: 128M
+
+# =======================================================================
+# 🌐 RED COMÚN EXTERNA Y VOLÚMENES PERSISTENTES
+# =======================================================================
+networks:
+  ntw_cloud:
+    name: ntw_cloud
+    external: true
+
+volumes:
+  cloud_mysql_data_products:
+  cloud_mysql_data_users:  
