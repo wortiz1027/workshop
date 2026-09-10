@@ -18,7 +18,7 @@ client.test("Reporte Distribuido Unificado Correcto", function () {
 
   tests.assert(reportObj.userId === "usr-0001", "El ID del reporte coincide con Carlos Mendoza");
   tests.assert(reportObj.userRole === "CLIENT", "El rol mapeado del usuario es correcto");
-  tests.assert(reportObj.totalProductsCalculatedBySp === 12, "El Procedure de la DB local de usuarios conto 2 productos");
+  tests.assert(reportObj.totalProductsCalculatedBySp === 2, "El Procedure de la DB local de usuarios conto 2 productos");
   tests.assert(Array.isArray(reportObj.purchases), "La propiedad purchases es una lista estructurada");
 
   if (reportObj.purchases.length > 0) {

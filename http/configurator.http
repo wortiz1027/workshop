@@ -1,5 +1,5 @@
 # ⚙️ Resterm Config Server Workspace Configuration
-@baseUrl = http://localhost:9990
+@baseUrl = http://{{configurator.host}}:9990
 
 ###
 # @name CheckUsersProfileDev
