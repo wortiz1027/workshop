@@ -27,14 +27,14 @@ RUN jar -xf /build/target/*.jar
 # ==========================================
 # FASE 2: Entorno de Ejecución (Runtime Stage)
 # ==========================================
-FROM eclipse-temurin:21-alpine AS runner
+FROM eclipse-temurin:21-jre-noble AS runner
 WORKDIR /app
 
-RUN addgroup -S spring && \
-	adduser -S spring -G spring -h /app -s /sbin/nologin && \
+# Crear el grupo, el usuario y preparar la estructura de carpetas usando comandos estándar de Linux
+RUN groupadd -r spring && \
+	useradd -r -g spring -d /app -s /usr/sbin/nologin spring && \
 	mkdir -p /app/logs && \
-	chown -R spring:spring /app && \
-	rm -rf /var/cache/apk/* /lib/apk/db/*
+	chown -R spring:spring /app
 
 USER spring:spring
 

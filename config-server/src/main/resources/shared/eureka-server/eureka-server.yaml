@@ -5,8 +5,8 @@ eureka:
     register-with-eureka: false
     fetch-registry: false
     service-url:
-      defaultZone: http://${EUREKA_SERVER_HOSTNAME:eureka-server}:${EUREKA_SERVER_PORT:8761}/eureka/
-      #defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+      #defaultZone: http://${EUREKA_SERVER_HOSTNAME:eureka-server}:${EUREKA_SERVER_PORT:8761}/eureka/
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
       
   # 🚀 CONTROL DE EMERGENCIA SRE (Solo para entornos locales/desarrollo):
   server:

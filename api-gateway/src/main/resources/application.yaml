@@ -3,5 +3,7 @@ spring:
     name: api-gateway
   config:
     import: "optional:configserver:http://${CONFIG_SERVER_HOSTNAME:config-server}:${CONFIG_SERVER_PORT:9999}"
-
-
+    #import: "optional:configserver:http://config-server:9999"
+    name: users 
+  profiles:
+    active: dev # Perfil por defecto para desarrollo local

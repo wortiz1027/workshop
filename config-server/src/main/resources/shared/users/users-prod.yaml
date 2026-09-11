@@ -67,7 +67,3 @@ management:
       consume: [W3C]
       produce: [W3C]
 
-api:
-  products:
-    # Apunta al nombre del contenedor o DNS interno en la red de producción de Docker [1]
-    url: ${PRODUCTS_API_URL}/api/products

@@ -9,7 +9,7 @@ spring:
       driver-class-name: com.mysql.cj.jdbc.Driver
       # 🔧 CONFIGURACIÓN HIKARI PARA DESARROLLO
       hikari:
-          pool-name: users-dev-hikari-pool
+          pool-name: products-dev-hikari-pool
           # Empezamos con pocas conexiones para ahorrar memoria en local
           minimum-idle: 2
           maximum-pool-size: 5
