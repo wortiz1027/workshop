@@ -161,27 +161,75 @@ Este flujo describe la orquestación distribuida que es auditada en tiempo real 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Terminal as Cliente / Resterm
-    participant UC as UserController (users)
-    participant US as UserService (users)
-    participant UR as UserRepository (users)
-    participant PC as ProductController (products)
-    participant PS as ProductService (products)
+    actor Cliente as 📱 Cliente / Resterm
+    
+    %% 🖥️ PARTICIPANTES DE LA ARQUITECTURA DISTRIBUIDA
+    participant KC as 🔐 Keycloak (IdP)
+    participant GW as 👑 API Gateway (WebMVC)
+    participant CS as ☁️ Config Server
+    participant EU as 📡 Eureka Server
+    participant US as 👥 service-users (App)
+    participant DB_U as 🐬 usersdb (MySQL)
+    participant PS as 📦 service-products (App)
+    participant DB_P as 🐬 productsdb (MySQL)
 
-    Terminal->>UC: GET /api/users/usr-0001/report
-    Note over UC: Inicializa Trace ID Global
-    UC->>US: getUserFullReport("usr-0001")
-    US->>UR: findByIdWithProducts("usr-0001")
-    Note over UR: Ejecuta consulta SQL optimizada<br/>usando LEFT JOIN FETCH
-    UR-->>US: Entidad User con Colección de IDs
-    Note over US: Propaga Trace ID en Cabeceras W3C
-    US->>PC: GET /api/products/{id} (vía RestClient)
-    PC->>PS: findById(id)
-    PS-->>PC: ProductDTO
-    PC-->>US: HTTP 200 OK (Metadata del Producto)
-    Note over US: Mapea y compone UserAggregateReportDTO
-    US-->>UC: Objeto de Agregación Completo
-    UC-->>Terminal: HTTP 200 OK (JSON Enriquecido)
+    %% =========================================================
+    %% PHASE 1: ARRANQUE Y BOOTSTRAP (SEGUNDO PLANO)
+    %% =========================================================
+    Note over GW, PS: ⏳ Fase de Inicialización de Contenedores (Bootstrap)
+    GW->>CS: GET /api-gateway/prod (Descarga Propiedades)
+    US->>CS: GET /users/prod (Descarga Propiedades)
+    PS->>CS: GET /products/prod (Descarga Propiedades)
+    US->>EU: Registra Instancia: USERS (service-users)
+    PS->>EU: Registra Instancia: PRODUCTS (service-products)
+
+    %% =========================================================
+    %% PHASE 2: AUTENTICACIÓN
+    %% =========================================================
+    rect rgb(255, 242, 204)
+        Note over Cliente, KC: 🔐 Fase 1: Autenticación OAuth2 / OIDC
+        Cliente->>KC: POST /protocol/openid-connect/token (Credentials)
+        KC-->>Cliente: HTTP 200 OK (access_token JWT Firmado)
+    end
+
+    %% =========================================================
+    %% PHASE 3: ORQUESTACIÓN PROTEGIDA DE NEGOCIO
+    %% =========================================================
+    rect rgb(226, 240, 217)
+        Note over Cliente, DB_P: 🚀 Fase 2: Petición de Reporte Protegido vía Gateway
+        Cliente->>GW: GET /api/users/usr-0001/report (Authorization: Bearer JWT)
+        Note over GW: Interceptor de Seguridad:<br/>Extrae y verifica firma del JWT
+        GW->>KC: GET /protocol/openid-connect/certs (Descarga JWKS Públicas)
+        
+        GW->>EU: Consulta ubicación de 'service-users'
+        EU-->>GW: Responde IP: service-users:8081
+        
+        GW->>US: GET /api/users/usr-0001/report (Enruta Petición con Bearer JWT)
+        Note over US: Micrometer Tracing:<br/>Inicializa y Propaga Trace ID Global
+        
+        %% Consulta Base de Datos Usuarios
+        US->>DB_U: SQL: LEFT JOIN FETCH (users + users_products)
+        Note over DB_U: Ejecuta Procedure local<br/>y mapea colección de IDs
+        DB_U-->>US: Entidad User con lista de Claves Lógicas
+        
+        %% Consulta Inter-Servicio Balanceada usando Eureka
+        Note over US: RestClient + @LoadBalanced:<br/>Busca 'products' en Eureka
+        US->>EU: Consulta ubicación de 'products'
+        EU-->>US: Responde IP: service-products:8080
+        
+        US->>PS: GET /api/products/{id} (Llamada HTTP síncrona)
+        Note over PS: Recibe y mantiene Trace ID en Cabeceras W3C
+        
+        %% Consulta Base de Datos Productos
+        PS->>DB_P: SQL: SELECT * FROM products WHERE id = ?
+        DB_P-->>PS: Fila del Producto (Metadata)
+        
+        PS-->>US: HTTP 200 OK (ProductDTO JSON)
+        
+        Note over US: Mapea, une y compone el objeto final:<br/>UserAggregateReportDTO
+        US-->>GW: HTTP 200 OK (JSON Enriquecido)
+        GW-->>Cliente: HTTP 200 OK (JSON de Negocio Entregado)
+    end
 ```
 
 ---
