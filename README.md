@@ -12,75 +12,86 @@ El ecosistema está completamente instrumentado de forma nativa (sin agentes pes
 
 ```mermaid
 graph TD
-    subgraph Host ["💻 Entorno Maquina Real Host"]
-        UI[📱 Cliente HTTP / Resterm] -->|"1. Entrada Publica Puerto 8000"| AppGateway
-        GRAFANA_UI["📊 Grafana Dashboard <br> Puerto 3000"]
+    %% =========================================================
+    %% 💻 CAPA DE CLIENTE COLOFÓN (MÁQUINA REAL)
+    %% =========================================================
+    subgraph Host ["💻 Entorno Máquina Real Host"]
+        UI[📱 Cliente HTTP / Resterm]
+        GRAFANA_UI["📊 Grafana Dashboard (Puerto 3000)"]
     end
 
-    subgraph DockerBridge ["🐳 Red Docker: workshop_shared_network Bridge"]
-        subgraph SpringCloud ["⚙️ Infraestructura 🍃 Spring Cloud (Contenedores)"]
-            ConfigServer[☁️ Config Server <br> Puerto 9999]
-            EurekaServer[📡 Eureka Server <br> Puerto 8761]
-            AppGateway[👑 API Gateway WebMVC <br> Puerto 8000]
-        end
-
-        subgraph SubUsers ["👥 Microservicio Usuarios Puerto 8081"]
-            AppUsers[🍃 Spring Boot: users <br> Micrometer Tracing]
-            DBUsers[(🐬 MySQL: usersdb)]
-            AppUsers -->|localhost:3306| DBUsers
-        end
-
-        subgraph SubProducts ["📦 Microservicio Productos Puerto 8080"]
-            AppProducts[🍃 Spring Boot: products <br> Micrometer Tracing]
-            DBProducts[(🐬 MySQL: productsdb)]
-            AppProducts -->|localhost:3306| DBProducts
-        end
-
-        subgraph TelemetryStack ["🕵️‍♂️ Stack de Observabilidad Centralizado LGTM"]
-            ALLOY[⚙️ Grafana Alloy <br> OpenTelemetry Collector]
-            PROM[(🔥 Prometheus <br> Metrics)]
-            LOKI[(🪵 Grafana Loki <br> Logs)]
-            TEMPO[(⏱️ Grafana Tempo <br> Traces)]
-        end
+    %% =========================================================
+    %% 🎛️ CAPA DE PERÍMETRO Y CONTROL (DOCKER SHARED NETWORK)
+    %% =========================================================
+    subgraph CapaControl ["🎛️ Capa de Perímetro, Control y Seguridad"]
+        AppGateway[👑 API Gateway WebMVC <br> Puerto 8000]
+        KeycloakServer[🔐 Keycloak Server <br> Puerto 8080]
     end
 
-    %% Ciclo de Descarga de Propiedades Centralizadas
-    AppGateway -.->|"2. Descarga YAML"| ConfigServer
-    AppUsers -.->|"Descarga YAML"| ConfigServer
-    AppProducts -.->|"Descarga YAML"| ConfigServer
+    %% =========================================================
+    %% ⚙️ CAPA DE INFRAESTRUCTURA SPRING CLOUD
+    %% =========================================================
+    subgraph SpringCloud ["⚙️ Infraestructura Spring Cloud"]
+        ConfigServer[☁️ Config Server <br> Puerto 9999]
+        EurekaServer[📡 Eureka Server <br> Puerto 8761]
+    end
 
-    %% Ciclo de Descubrimiento de Servicios Dinámico
-    AppGateway -->|"3. Consulta Rutas"| EurekaServer
-    AppUsers -->|"Registra Instancia: USERS"| EurekaServer
-    AppProducts -->|"Registra Instancia: PRODUCTS"| EurekaServer
+    %% =========================================================
+    %% 👥 CAPA DE MICROSERVICIOS DE NEGOCIO
+    %% =========================================================
+    subgraph SubUsers ["👥 Microservicio Usuarios (Puerto 8081)"]
+        AppUsers[🍃 Spring Boot: users]
+        DBUsers[(🐬 MySQL: usersdb)]
+        AppUsers -->|localhost:3306| DBUsers
+    end
 
-    %% Enrutamiento Interno del API Gateway
-    AppGateway -->|"4. Enruta lb://service-products"| AppProducts
-    AppGateway -->|"4. Enruta lb://service-users"| AppUsers
+    subgraph SubProducts ["📦 Microservicio Productos (Puerto 8080)"]
+        AppProducts[🍃 Spring Boot: products]
+        DBProducts[(🐬 MySQL: productsdb)]
+        AppProducts -->|localhost:3306| DBProducts
+    end
 
-    %% Comunicación de Negocio Inter-Servicio
-    AppUsers -->|"Orquestación HTTP Síncrona"| AppProducts
+    %% =========================================================
+    %% 🕵️‍♂️ CAPA DE TELEMETRÍA CENTRALIZADA (CORREGIDA CON ALTA LUMINOSIDAD)
+    %% =========================================================
+    subgraph TelemetryStack ["🕵️‍♂️ Stack de Observabilidad Centralizado LGTM"]
+        ALLOY[⚙️ Grafana Alloy <br> OpenTelemetry Collector]
+        PROM[(🔥 Prometheus)]
+        LOKI[(🪵 Grafana Loki)]
+        TEMPO[(⏱️ Grafana Tempo)]
+    end
 
-    %% Flujos de Telemetría Unificados hacia Grafana Alloy
-    AppGateway -->|"OTLP/HTTP"| ALLOY
-    AppUsers -->|"OTLP/HTTP"| ALLOY
-    AppProducts -->|"OTLP/HTTP"| ALLOY
+    %% =========================================================
+    %% 🔄 FLUJOS LÓGICOS Y DIRECCIONAMIENTO DE TRÁFICO
+    %% =========================================================
+    UI ==>|"1a. POST /token"| KeycloakServer
+    UI ==>|"1b. GET /api/... (Bearer JWT)"| AppGateway
+    AppGateway ==>|"1c. Valida Criptografía JWKS"| KeycloakServer
+    AppGateway -->|"2. Consulta Instancias"| EurekaServer
+    AppGateway ==>|"3. Enruta lb://"| AppUsers
+    AppGateway ==>|"3. Enruta lb://"| AppProducts
+    AppUsers ==>|"4. Orquestación HTTP"| AppProducts
 
-    %% Distribución de Alloy hacia el Almacenamiento Core
+    AppUsers & AppProducts -.->|"Registra Instancia"| EurekaServer
+    AppGateway & AppUsers & AppProducts -.->|"Descarga YAML"| ConfigServer
+
+    AppGateway & AppUsers & AppProducts & KeycloakServer -.->|"Métricas, Logs y Trazas"| ALLOY
     ALLOY -->|Metrics| PROM
     ALLOY -->|Logs| LOKI
     ALLOY -->|Traces| TEMPO
+    GRAFANA_UI -.->|Query| PROM & LOKI & TEMPO
 
-    %% Visualización
-    GRAFANA_UI -->|Query Data| PROM
-    GRAFANA_UI -->|Query Data| LOKI
-    GRAFANA_UI -->|Query Data| TEMPO
+    %% =========================================================
+    %% 🎨 ESQUEMA DE COLORES E IDENTIDAD DE ALTO CONTRASTE (CORREGIDO)
+    %% =========================================================
+    style Host fill:#ffffff,stroke:#718093,stroke-width:2px,stroke-dasharray: 5 5
+    style CapaControl fill:#fff2cc,stroke:#d67d00,stroke-width:3px
+    style SpringCloud fill:#e2f0d9,stroke:#385723,stroke-width:3px
+    style SubUsers fill:#fce4d6,stroke:#c65911,stroke-width:2px
+    style SubProducts fill:#ddebf7,stroke:#2f5597,stroke-width:2px
 
-    %% Aplicar estilos utilizando exclusivamente los IDs técnicos planos
-    style SubUsers fill:#f9f,stroke:#333,stroke-width:2px
-    style SubProducts fill:#bbf,stroke:#333,stroke-width:2px
-    style SpringCloud fill:#cef,stroke:#048,stroke-width:2px
-    style TelemetryStack fill:#eee,stroke:#ff6600,stroke-width:2px
+    %% 🚀 FIX DE CONTRASTE: Fondo claro pastel con borde encendido de Grafana
+    style TelemetryStack fill:#f5f6fa,stroke:#ff4a00,stroke-width:3px
 ```
 
 ### 📡 Lección Clave de Infraestructura: Redes en DevContainers
@@ -318,4 +329,46 @@ docker build \
   --build-arg BUILD_VERSION="1.0.0" \
   --build-arg BUILD_REVISION=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown") \
   -t workshop/api-gateway:latest .
+```
+
+## 🧪 8. Pruebas de Integración y Seguridad Perimetral (Suite Curl)
+
+Una vez que el entorno completo se encuentre arriba y Keycloak haya importado el Realm automatizado, puedes ejecutar las siguientes pruebas desde la terminal de tu máquina física para validar el circuito de seguridad OAuth2/OIDC.
+
+### Paso 1: Autenticación Centralizada (Obtener Token JWT)
+
+Solicita un token de acceso enviando las credenciales del usuario de laboratorio directamente a Keycloak:
+
+```bash
+curl -X POST "http://localhost:8082/realms/workshop-realm/protocol/openid-connect/token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=password" \
+  -d "client_id=workshop-client" \
+  -d "client_secret=KXEHeEXnT1VDTNkMKOKKPXTnvokF6mNZ" \
+  -d "username=developer" \
+  -d "password=security2026" | jq
+```
+
+> 💡 **Nota:** Copia el valor de la propiedad `"access_token"` que te devuelve el JSON de respuesta para usarlo en los siguientes comandos.
+
+### Paso 2: Consultar Catálogo de Productos vía API Gateway
+
+Envía la solicitud al puerto público unificado del Gateway (**Puerto 8001**), inyectando el token en la cabecera de autorización:
+
+```bash
+curl -v GET "http://localhost:8001/api/products/3d703247-54bc-47ef-a69d-7531a638022e" \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer <INSERTA_TU_TOKEN_AQUÍ>" \
+  | jq
+```
+
+### Paso 3: Consultar Reporte Orquestado de Usuarios vía API Gateway
+
+Valida la comunicación inter-servicio síncrona y balanceada enviando el mismo token de acceso perimetral:
+
+```bash
+curl -v GET "http://localhost:8001/api/users/usr-0001/report" \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer <INSERTA_TU_TOKEN_AQUÍ>" \
+  | jq
 ```

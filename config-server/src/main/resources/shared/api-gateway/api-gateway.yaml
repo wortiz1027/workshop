@@ -21,7 +21,7 @@ spring:
               lower-case-service-id: true
           routes:
             - id: products
-              uri: lb://products # Balanceador dinámico apuntando al ID de Eureka
+              uri: lb://products
               predicates:
                 - Path=/api/products/**
 
@@ -29,3 +29,12 @@ spring:
               uri: lb://users
               predicates:
                 - Path=/api/users/**
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # 🚨 LA REGLA DE ORO: Apunta al contenedor interno de Keycloak.
+          # Usamos el Realm 'workshop-realm' (lo crearemos en la consola web)
+          issuer-uri: http://${KEYCLOAK_SERVER_HOSTNAME:keycloak}:${KEYCLOAK_SERVER_PORT:8080}/realms/workshop-realm
+          # Alternativa para desarrollo local si la resolución de hilos falla:
+          jwk-set-uri: http://${KEYCLOAK_SERVER_HOSTNAME:keycloak}:${KEYCLOAK_SERVER_PORT:8080}/realms/workshop-realm/protocol/openid-connect/certs

@@ -12,3 +12,4 @@ spring:
         native:
           # Busca los archivos .yaml de los microservicios en esta ruta del Classpath
           search-locations: classpath:/shared/{application}
+  

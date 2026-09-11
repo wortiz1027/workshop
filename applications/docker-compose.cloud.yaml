@@ -1,5 +1,4 @@
 services:
-
   # =======================================================================
   # ☁️ MICROSERVICIO: CONFIG SERVER (Cerebro de Propiedades)
   # =======================================================================
@@ -15,8 +14,8 @@ services:
       EUREKA_SERVER_HOSTNAME: ${CLOUD_EUREKA_SERVER_HOSTNAME}
       JAEGER_HOSTNAME: ${CLOUD_JAEGER_HOSTNAME}
       JAEGER_PORT: ${CLOUD_JAEGER_PORT}
-    volumes:
-      - ./src/main/resources/shared:/app/resources/shared # Ajusta la ruta izquierda a tu carpeta real      
+      KEYCLOAK_SERVER_HOSTNAME: ${CLOUD_KEYCLOAK_SERVER_HOSTNAME}
+      KEYCLOAK_SERVER_PORT: ${CLOUD_KEYCLOAK_SERVER_PORT}
     networks:
       - ntw_cloud
     healthcheck:
@@ -62,6 +61,8 @@ services:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE_ENV}
       CONFIG_SERVER_HOSTNAME: ${CLOUD_CONFIG_SERVER_HOSTNAME}
       CONFIG_SERVER_PORT: ${CLOUD_CONFIG_SERVER_PORT}
+      KEYCLOAK_SERVER_HOSTNAME: ${CLOUD_KEYCLOAK_SERVER_HOSTNAME}
+      KEYCLOAK_SERVER_PORT: ${CLOUD_KEYCLOAK_SERVER_PORT}
     networks:
       - ntw_cloud
     depends_on:
