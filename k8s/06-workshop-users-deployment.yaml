@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: users-app
+  namespace: workshop-k8s
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: users-app
+  template:
+    metadata:
+      labels:
+        app: users-app
+    spec:
+      containers:
+        - name: users-container
+          image: workshop/users-service:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+            - name: DB_NAME
+              value: usersdb
+            - name: DB_HOSTNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: workshop-shared-config
+                  key: DB_HOSTNAME
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: workshop-shared-config
+                  key: DB_PORT
+            - name: DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: workshop-shared-config
+                  key: DB_USER_USERS
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: workshop-shared-secret
+                  key: DB_PASSWORD_USERS
+            - name: PRODUCTS_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: workshop-shared-config
+                  key: PRODUCTS_API_URL
+          ports:
+            - containerPort: 8081
+          resources:
+            requests:
+              memory: "150Mi"
+              cpu: "100m" # 🚨 10% de un núcleo: El blanco perfecto para ahogar en vivo
+            limits:
+              memory: "256Mi"
+              cpu: "250m"

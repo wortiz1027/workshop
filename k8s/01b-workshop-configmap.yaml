@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: workshop-shared-config
+  namespace: workshop-k8s
+data:
+  # 🐬 CONFIGURACIÓN GLOBAL DE BASE DE DATOS (MÁQUINA VIRTUAL EXTERNA)
+  DB_HOSTNAME: "mysql-external-srv.workshop-k8s.svc.cluster.local" # 🚨 Cambia esta IP por la de tu VM real
+  DB_PORT: "3306"
+  DB_USER_PRODUCTS: "products"
+  DB_PASSWORD_PRODUCTS: "products2026"
+  DB_USER_USERS: "users"
+  DB_PASSWORD_USERS: "users2026"
+  
+  # 📡 CONECTIVIDAD ENTRE MICROSERVICIOS
+  PRODUCTS_API_URL: "http://products-srv:8080"

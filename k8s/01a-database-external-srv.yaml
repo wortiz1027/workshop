@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-external-srv # 🚀 Nombre lógico dentro de Kubernetes
+  namespace: workshop-k8s
+spec:
+  type: ExternalName
+  # 🔌 Redirige cualquier llamado interno hacia la IP real de tu máquina virtual externa
+  externalName: 192.168.1.7
