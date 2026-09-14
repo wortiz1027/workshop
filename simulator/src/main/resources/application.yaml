@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: simulator
+
+server:
+  port: 8080
+  tomcat:
+    threads:
+      max: 50 # Limitamos los hilos para que el estrés impacte más rápido

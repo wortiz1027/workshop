@@ -1,0 +1,50 @@
+{
+	"name": "🍃 Simulator :: Boot Dev environment🍃",
+	"service": "simulator",
+	"dockerComposeFile": "docker-compose.yaml",
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+	"features": {
+		"ghcr.io/devcontainers/features/java:1": {
+			"version": "none",
+			"installMaven": "true",
+			"installGradle": "false"
+		}
+	},
+	// 🐘 Server app is available at 8080
+	"forwardPorts": [
+		8080
+	],
+	"portsAttributes": {
+		"8080": {
+			"label": "🚀 Spring Boot App"
+		}
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"vscjava.vscode-java-pack",
+				"vmware.vscode-spring-boot",
+				"mtxr.sqltools",
+				"mtxr.sqltools-driver-pg",
+				"vmware.vscode-boot-dev-pack",
+				"bierner.markdown-mermaid",
+				"MermaidChart.vscode-mermaid-chart",
+				"ms-vscode.live-server"
+			],
+			"settings": {
+				"workbench.iconTheme": "symbols",
+				"workbench.colorTheme": "Light+",
+				"java.compile.nullAnalysis.mode": "automatic",
+				"java.jdt.ls.java.home": "/usr/lib/jvm/msopenjdk-current",
+				"java.configuration.runtimes": [
+					{
+						"name": "JavaSE-21",
+						"path": "/usr/lib/jvm/msopenjdk-current",
+						"default": true
+					}
+				],
+				"java.import.gradle.java.home": "/usr/lib/jvm/msopenjdk-current"
+			}
+		}
+	}
+}

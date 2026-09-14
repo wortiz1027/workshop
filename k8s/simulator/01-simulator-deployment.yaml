@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simulator-app
+  namespace: workshop-simulator
+spec:
+  replicas: 2 # 🚀 Arranca con 2 instancias listas para el balanceo y la autoreparación
+  selector:
+    matchLabels:
+      app: simulator-app
+  template:
+    metadata:
+      labels:
+        app: simulator-app
+    spec:
+      containers:
+        - name: simulator-container
+          # 🐳 APUNTA A TU IMAGEN RECIÉN COMPILADA Y RECIÉN SUBIDA A DOCKER HUB:
+          image: wortiz1027/simulator:latest
+          imagePullPolicy: Always
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+          ports:
+            - containerPort: 8080
+          # 🚨 PERFIL DE HARDWARE AJUSTADO PARA EL SHOW DE AUTOESCALADO
+          resources:
+            requests:
+              memory: "180Mi"
+              cpu: "150m" 
+            limits:
+              memory: "350Mi"
+              cpu: "300m" # Capado de procesador para forzar el disparo del HPA

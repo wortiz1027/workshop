@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: simulator-ingress
+  namespace: workshop-simulator
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    # 🚀 LA SOLUCIÓN CORE: Habilita el motor de expresiones regulares de NGINX
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  ingressClassName: nginx # Vincula al proxy que ya lee tu IP 192.168.56.201
+  rules:
+    - host: workshop.local
+      http:
+        paths:
+          # 🎮 CAPTURA DINÁMICA: Atrapa /api/v1/simulator/health, /stress y cualquier otra sub-ruta
+          - path: /api/v1/simulator(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: simulator-srv # Apunta al servicio interno del paso 02
+                port:
+                  number: 8080

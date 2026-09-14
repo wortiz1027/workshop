@@ -5,7 +5,8 @@ metadata:
   namespace: workshop-k8s
 data:
   # 🐬 CONFIGURACIÓN GLOBAL DE BASE DE DATOS (MÁQUINA VIRTUAL EXTERNA)
-  DB_HOSTNAME: "mysql-external-srv.workshop-k8s.svc.cluster.local" # 🚨 Cambia esta IP por la de tu VM real
+  #DB_HOSTNAME: "mysql-external-srv.workshop-k8s.svc.cluster.local" # 🚨 Cambia esta IP por la de tu VM real
+  DB_HOSTNAME: "192.168.56.1"
   DB_PORT: "3306"
   DB_USER_PRODUCTS: "products"
   DB_PASSWORD_PRODUCTS: "products2026"

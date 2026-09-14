@@ -1,0 +1,16 @@
+# 📦 Excluir carpetas de compilación locales
+target/
+*.jar
+
+# 🖥️ Excluir configuraciones de entornos de desarrollo (IDEs)
+.idea/
+.vscode/
+*.iml
+.classpath
+.project
+.settings/
+
+# 🪵 Excluir archivos de control y logs locales
+.git/
+.gitignore
+*.log

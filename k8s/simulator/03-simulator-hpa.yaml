@@ -1,0 +1,34 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: simulator-app-hpa
+  namespace: workshop-simulator
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: simulator-app
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 40
+  
+  # =======================================================================
+  # 🚀 COMPORTAMIENTO ACELERADO PARA EL SHOW EN VIVO
+  # =======================================================================
+  behavior:
+    scaleDown:
+      # ⏱️ Ventana de estabilización: Espera solo 15 segundos de paz antes de borrar pods
+      stabilizationWindowSeconds: 15
+      policies:
+        - type: Percent
+          value: 100        # Permite borrar hasta el 100% de los pods sobrantes de un solo golpe
+          periodSeconds: 15 # Aplica la regla cada 15 segundos
+        - periodSeconds: 15 
+          type: Pods
+          value: 1  

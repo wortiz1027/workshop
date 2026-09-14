@@ -14,7 +14,7 @@ services:
   # 🐬 MySQL Database
   db_users:
     image: mysql:9.0
-    container_name: mysql_server_users
+    container_name: dev_srv_users
     hostname: service-users
     restart: always
     #command: --lower_case_table_names=1

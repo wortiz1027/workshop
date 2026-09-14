@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- 🎨 CONFIGURACIÓN DEL FORMATO DE CONSOLA -->
+    <!-- Muestra: Fecha, Nivel (INFO/ERROR), ID del Hilo, Clase de Java y el Mensaje -->
+    <property name="CONSOLE_LOG_PATTERN" 
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n" />
+
+    <!-- 🖥️ CONECTOR DE SALIDA ESTÁNDAR (STDOUT) -->
+    <!-- Esto es lo que Kubernetes lee para el comando 'kubectl logs' -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            <charset>utf8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 📊 NIVELES DE LOG DE LA APLICACIÓN -->
+    <!-- 'INFO' para no saturar la pantalla, pero capturar el arranque y peticiones -->
+    <root level="INFO">
+        <appender-ref ref="STDOUT" />
+    </root>
+
+    <!-- Opcional: Si quieres ver a detalle lo que hace Tomcat de Spring Boot -->
+    <logger name="org.springframework.web" level="INFO" />
+
+</configuration>

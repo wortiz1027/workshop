@@ -1,11 +1,35 @@
-# ⚙️ Resterm Users Workspace Configuration
-@baseUrl = http://{{users.host}}:{{users.port}}/api/users
-@catalogUrl = http://{{products.host}}:{{products.port}}/api/products
+# ⚙️ Resterm Users Workspace Configuration (Alineado al API Gateway del Workshop)
+# 🎯 REGLA DE ORO SRE: Todas las llamadas apuntan ahora al Puerto 8000 del API Gateway Perimetral
+@gatewayUrl = http://localhost:8000
+@keycloakUrl = http://localhost:8082/realms/workshop-realm/protocol/openid-connect/token
+@baseUrl = http://{{users.host}}:{{users.port}}
+###
+# @name AuthenticateKeycloak
+# 🔐 0. Autenticación en Keycloak (Obtener Token JWT dinámico para el laboratorio)
+POST {{keycloakUrl}}
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=workshop-client&client_secret=cGdSDI3qldM2MvbiZuteEOJNHOPEBjJ9&username=developer&password=security2026
+
+# @script test
+> {%
+client.test("Autenticación en Servidor de Identidad Exitosa", function () {
+  // 1. Sintaxis de aserción oficial de Resterm
+  tests.assert(response.statusCode === 200, "Keycloak emitió el Token de acceso correctamente");
+
+  var authObj = JSON.parse(response.body);
+  
+  // 2. 🚀 LA SINTAXIS OFICIAL DE RESTERM: vars.global.set
+  // Guardamos el token de forma segura y enmascarada usando la opción secret
+  vars.global.set("authToken", authObj.access_token, { secret: true });
+});
+%}
 
 ###
 # @name GetUserAggregateReportSuccess
 # 1. Obtener reporte distribuido unificado (Usuarios + Productos externos) de un usuario existente.
-GET {{baseUrl}}/usr-0001/report
+# @trace dns<=40ms total<=200ms tolerance=25ms
+GET {{baseUrl}}/api/users/usr-0001/report
 Accept: application/json
 
 # @script test
@@ -29,8 +53,10 @@ client.test("Reporte Distribuido Unificado Correcto", function () {
 ###
 # @name GetUserReportNotFoundError
 # 2. Forzar error 422 al intentar generar reporte de un usuario que no existe en el sistema.
-GET {{baseUrl}}/usr-inexistente/report
+# @trace dns<=40ms total<=200ms tolerance=25ms
+GET {{gatewayUrl}}/api/users/usr-inexistente/report
 Accept: application/json
+Authorization: Bearer {{authToken}}
 
 # @script test
 > {%
@@ -48,8 +74,10 @@ client.test("Captura de Error de Usuario Inexistente", function () {
 ###
 # @name RegisterPurchaseSuccess
 # 3. Comprar un producto valido (Xbox Serie X) para Carlos Mendoza.
-POST {{baseUrl}}/purchase
+# @trace dns<=40ms total<=200ms tolerance=25ms
+POST {{gatewayUrl}}/api/users/purchase
 Content-Type: application/json
+Authorization: Bearer {{authToken}}
 
 {
   "userId": "usr-0001",
@@ -72,8 +100,10 @@ client.test("Compra Registrada Exitosamente", function () {
 ###
 # @name RegisterPurchaseProductNotFoundError
 # 4. Intentar comprar un producto inexistente para forzar la validacion de catalogo externa.
-POST {{baseUrl}}/purchase
+# @trace dns<=40ms total<=200ms tolerance=25ms
+POST {{gatewayUrl}}/api/users/purchase
 Content-Type: application/json
+Authorization: Bearer {{authToken}}
 
 {
   "userId": "usr-0001",
@@ -95,8 +125,10 @@ client.test("Bloqueo de Compra por Producto Inexistente", function () {
 ###
 # @name RegisterPurchaseUserNotFoundError
 # 5. Intentar comprar un producto valido pero con un usuario que no existe en el sistema.
-POST {{baseUrl}}/purchase
+# @trace dns<=40ms total<=200ms tolerance=25ms
+POST {{gatewayUrl}}/api/users/purchase
 Content-Type: application/json
+Authorization: Bearer {{authToken}}
 
 {
   "userId": "usr-falso-99",
@@ -108,7 +140,7 @@ Content-Type: application/json
 client.test("Bloqueo de Compra por Usuario Inexistente", function () {
   tests.assert(response.statusCode === 422, "Respuesta 422 de denegacion");
 
-  var errorObj = JSON.parse(response.body);
+  var errorObj = JSON.define(response.body);
 
   tests.assert(errorObj.message.includes("El usuario con ID 'usr-falso-99' no existe"), "Validacion de existencia local ejecutada");
 });

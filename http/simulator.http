@@ -1,0 +1,44 @@
+### =======================================================================
+### ⚙️ VARIABLES GLOBALES DEL TALLER
+### =======================================================================
+# Mapeamos la URL oficial del dominio de producción gestionado por el Ingress
+@baseUrl = http://localhost:8080
+
+### =======================================================================
+### 👋 1. CHEQUEO DE SALUD (HEALTHCHECK)
+### =======================================================================
+# @name CheckHealth
+# Valida que el Pod esté encendido y respondiendo en la red privada de K8s
+GET {{baseUrl}}/api/v1/simulator/health
+Accept: application/json
+
+# @script test
+> {%
+client.test("El simulador responde con éxito", function () {
+    // Aserción oficial de Resterm para validar código HTTP 200 OK
+    tests.assert(response.statusCode === 200, "El Pod de Spring Boot 4 está en verde");
+});
+%}
+
+### =======================================================================
+### 🚨 2. SIMULAR DISPARO DE ESTRÉS (CPU BURST)
+### =======================================================================
+# @name TriggerCpuStress
+# Ejecuta una sola llamada con el bucle matemático para calentar el procesador
+GET {{baseUrl}}/api/v1/simulator/stress
+Accept: application/json
+
+# @script test
+> {%
+client.test("Ciclo matemático procesado", function () {
+    // 1. Aserción de estado exitoso
+    tests.assert(response.statusCode === 200, "La CPU procesó el bucle correctamente");
+    
+    // 2. Parseamos el cuerpo de la respuesta en JSON
+    var data = JSON.parse(response.body);
+    
+    // 3. 🚀 SINTAXIS OFICIAL DE RESTERM PARA IMPRIMIR EN CONSOLA:
+    print("🔥 Petición atendida por el Pod de K8s: " + data.processedByPod);
+    print("⏱️ Tiempo de cómputo en Java: " + data.executionTimeMs + " ms");
+});
+%}
